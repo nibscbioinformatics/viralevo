@@ -290,7 +290,6 @@ process docutadapt {
 
   script:
   """
-  module load CUTAdapt/latest
   cutadapt -a $adapterfile -A $adapterfile -g $adapterfile -G $adapterfile -o ${sampleprefix}.R1.trimmed.fastq.gz -p ${sampleprefix}.R2.trimmed.fastq.gz $forward $reverse -q 30,30 --minimum-length 50 --times 40 -e 0.1 --max-n 0 > ${sampleprefix}.trim.out 2> ${sampleprefix}.trim.err
   """
 }
@@ -307,7 +306,6 @@ process dotrimlog {
 
   script:
   """
-  module load anaconda/Py2/python2
   python $baseDir/scripts/logger.py logdir trimming-summary.csv cutadapt
   """
 }
@@ -321,27 +319,11 @@ process doalignment {
   file ( bwaindex ) from ch_bwaIndex
 
   output:
-  set (sampleprefix, file("${sampleprefix}.unsorted.sam") ) into samfile
+  set (sampleprefix, file("${sampleprefix}.sorted.bam") ) into sortedbam
 
   script:
   """
-  module load BWA/latest
-  bwa mem -t ${task.cpus} -R '@RG\\tID:${sampleprefix}\\tSM:${sampleprefix}\\tPL:Illumina' $fastaref ${forwardtrimmed} ${reversetrimmed} > ${sampleprefix}.unsorted.sam
-  """
-}
-
-process sorttobam {
-  label 'process_medium'
-
-  input:
-  set ( sampleprefix, file(unsortedsam) ) from samfile
-
-  output:
-  set ( sampleprefix, file("${sampleprefix}.sorted.bam") ) into sortedbam
-
-  """
-  module load SAMTools/latest
-  samtools sort -o ${sampleprefix}.sorted.bam -O BAM -@ ${params.cpus} ${unsortedsam}
+  bwa mem -t ${task.cpus} -R '@RG\\tID:${sampleprefix}\\tSM:${sampleprefix}\\tPL:Illumina' $fastaref ${forwardtrimmed} ${reversetrimmed} | samtools sort -o ${sampleprefix}.sorted.bam -O BAM
   """
 }
 
@@ -358,7 +340,6 @@ process indelqual {
   set ( sampleprefix, file("${sampleprefix}.indelqual.bam") ) into (indelqualforindex, indelqualforcall)
 
   """
-  module load LoFREQ/latest
   lofreq indelqual --dindel -f $fastaref -o ${sampleprefix}.indelqual.bam $sortedbamfile
   """
 }
@@ -375,7 +356,6 @@ process samtoolsindex {
   file("${sampleprefix}.flagstat.out") into flagstatouts
 
   """
-  module load SAMTools/latest
   samtools index $indelqualfile
   samtools flagstat $indelqualfile > ${sampleprefix}.flagstat.out
   """
@@ -393,7 +373,6 @@ process doalignmentlog {
 
   script:
   """
-  module load anaconda/Py2/python2
   python $baseDir/scripts/logger.py logdir alignment-summary.csv flagstat
   """
 }
@@ -416,7 +395,6 @@ process varcall {
   set ( sampleprefix, file("${sampleprefix}.lofreq.vcf") ) into (finishedcalls, finishedcallsforconsensus)
 
   """
-  module load LoFREQ/latest
   lofreq call -f $fastaref -o ${sampleprefix}.lofreq.vcf --call-indels $indelqualfile
   """
 }
@@ -432,7 +410,6 @@ process dodepth {
   set ( sampleprefix, file("${sampleprefix}.samtools.depth") ) into samdepthout
 
   """
-  module load SAMTools/latest
   samtools depth -aa $indelqualfile > ${sampleprefix}.samtools.depth
   """
 }
@@ -448,7 +425,6 @@ process makevartable {
   set ( sampleprefix, file("${sampleprefix}-variants.csv") ) into nicetable
 
   """
-  module load anaconda/Py2/python2
   python $baseDir/scripts/tablefromvcf.py $lofreqout ${sampleprefix}-variants.csv
   """
 }
@@ -463,7 +439,6 @@ process makefilteredcalls {
   set ( sampleprefix, file("${sampleprefix}.filtered.lofreq.vcf") ) into filteredvcf
 
   """
-  module load anaconda/Py2/python2
   python $baseDir/scripts/filtervcf.py $lofreqout ${sampleprefix}.filtered.lofreq.vcf
   """
 }
@@ -480,9 +455,9 @@ process buildconsensus {
   set ( sampleprefix, file("${sampleprefix}.consensus.fasta") ) into consensusfasta
 
   """
-  module load GATK/4.1.3.0
-  gatk IndexFeatureFile -F $vcfin
-  gatk FastaAlternateReferenceMaker -R $fastaref -O ${sampleprefix}.consensus.fasta -V $vcfin
+  bcftools view $vcfin -Oz -o {sampleprefix}.vcf.gz
+  bcftools index {sampleprefix}.vcf.gz
+  cat $fastaref | bcftools consensus {sampleprefix}.vcf.gz > ${sampleprefix}.consensus.fasta
   """
 }
 
