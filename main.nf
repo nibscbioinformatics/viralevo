@@ -278,10 +278,7 @@ process output_documentation {
 //START OF NIBSC CUTADAPT-BWA-LOFREQ PIPELINE
 
 process docutadapt {
-  cpus 1
-  queue 'WORK'
-  time '12h'
-  memory '4 GB'
+  label 'process_medium'
 
   input:
   set ( sampleprefix, file(forward), file(reverse) ) from inputSample
@@ -300,10 +297,7 @@ process docutadapt {
 
 process dotrimlog {
   publishDir "$params.outdir/analysis", mode: "copy"
-  cpus 1
-  queue 'WORK'
-  time '12h'
-  memory '4 GB'
+  label 'process_low'
 
   input:
   file "logdir/*" from trimouts.toSortedList()
@@ -314,15 +308,12 @@ process dotrimlog {
   script:
   """
   module load anaconda/Py2/python2
-  python $HOME/CODE/core/utilities/logger.py logdir trimming-summary.csv cutadapt
+  python $baseDir/scripts/logger.py logdir trimming-summary.csv cutadapt
   """
 }
 
 process doalignment {
-  cpus 32
-  queue 'WORK'
-  time '12h'
-  memory '10 GB'
+  label 'process_high'
 
   input:
   set (sampleprefix, file(forwardtrimmed), file(reversetrimmed)) from trimmingoutput1
@@ -340,10 +331,7 @@ process doalignment {
 }
 
 process sorttobam {
-  cpus 1
-  queue 'WORK'
-  time '12h'
-  memory '24 GB'
+  label 'process_medium'
 
   input:
   set ( sampleprefix, file(unsortedsam) ) from samfile
@@ -357,33 +345,12 @@ process sorttobam {
   """
 }
 
-process markduplicates {
-  cpus 1
-  queue 'WORK'
-  time '12h'
-  memory '24 GB'
+process indelqual {
+  publishDir "$params.outdir/alignments", mode: "copy"
+  label 'process_medium'
 
   input:
   set ( sampleprefix, file(sortedbamfile) ) from sortedbam
-
-  output:
-  set ( sampleprefix, file("${sampleprefix}.marked.bam") ) into markedbam
-
-  """
-  module load GATK/4.1.3.0
-  gatk MarkDuplicates -I $sortedbamfile -M ${sampleprefix}.metrics.txt -O ${sampleprefix}.marked.bam
-  """
-}
-
-process indelqual {
-  publishDir "$params.outdir/alignments", mode: "copy"
-  cpus 1
-  queue 'WORK'
-  time '12h'
-  memory '24 GB'
-
-  input:
-  set ( sampleprefix, file(markedbamfile) ) from markedbam
   file( fastaref ) from ch_fasta
   file ( bwaindex ) from ch_bwaIndex
 
@@ -392,16 +359,13 @@ process indelqual {
 
   """
   module load LoFREQ/latest
-  lofreq indelqual --dindel -f $fastaref -o ${sampleprefix}.indelqual.bam $markedbamfile
+  lofreq indelqual --dindel -f $fastaref -o ${sampleprefix}.indelqual.bam $sortedbamfile
   """
 }
 
 process samtoolsindex {
   publishDir "$params.outdir/alignments", mode: "copy"
-  cpus 1
-  queue 'WORK'
-  time '12h'
-  memory '24 GB'
+  label 'process_medium'
 
   input:
   set ( sampleprefix, file(indelqualfile) ) from indelqualforindex
@@ -419,10 +383,7 @@ process samtoolsindex {
 
 process doalignmentlog {
   publishDir "$params.outdir/analysis", mode: "copy"
-  cpus 1
-  queue 'WORK'
-  time '12h'
-  memory '4 GB'
+  label 'process_low'
 
   input:
   file "logdir/*" from flagstatouts.toSortedList()
@@ -433,7 +394,7 @@ process doalignmentlog {
   script:
   """
   module load anaconda/Py2/python2
-  python $HOME/CODE/core/utilities/logger.py logdir alignment-summary.csv flagstat
+  python $baseDir/scripts/logger.py logdir alignment-summary.csv flagstat
   """
 }
 
@@ -445,17 +406,14 @@ forcall.into {
 
 process varcall {
   publishDir "$params.outdir/analysis", mode: "copy"
-  cpus 1
-  queue 'WORK'
-  time '12h'
-  memory '24 GB'
+  label 'process_high'
 
   input:
   set ( sampleprefix, file(indelqualfile), file(samindexfile) ) from forcall1
   file( fastaref ) from ch_fasta
 
   output:
-  set ( sampleprefix, file("${sampleprefix}.lofreq.vcf") ) into finishedcalls
+  set ( sampleprefix, file("${sampleprefix}.lofreq.vcf") ) into (finishedcalls, finishedcallsforconsensus)
 
   """
   module load LoFREQ/latest
@@ -465,10 +423,7 @@ process varcall {
 
 process dodepth {
   publishDir "$params.outdir/alignments", mode: "copy"
-  cpus 1
-  queue 'WORK'
-  time '12h'
-  memory '50 GB'
+  label 'process_low'
 
   input:
   set ( sampleprefix, file(indelqualfile), file(samindexfile) ) from forcall2
@@ -484,10 +439,7 @@ process dodepth {
 
 process makevartable {
   publishDir "$params.outdir/analysis", mode: "copy"
-  cpus 1
-  queue 'WORK'
-  time '12h'
-  memory '24 GB'
+  label 'process_low'
 
   input:
   set ( sampleprefix, file(lofreqout) ) from finishedcalls
@@ -497,7 +449,40 @@ process makevartable {
 
   """
   module load anaconda/Py2/python2
-  python $HOME/CODE/core/utilities/tablefromvcf.py $lofreqout ${sampleprefix}-variants.csv
+  python $baseDir/scripts/tablefromvcf.py $lofreqout ${sampleprefix}-variants.csv
+  """
+}
+
+process makefilteredcalls {
+  label 'process_low'
+
+  input:
+  set ( sampleprefix, file(lofreqout) ) from finishedcallsforconsensus
+
+  output:
+  set ( sampleprefix, file("${sampleprefix}.filtered.lofreq.vcf") ) into filteredvcf
+
+  """
+  module load anaconda/Py2/python2
+  python $baseDir/scripts/filtervcf.py $lofreqout ${sampleprefix}.filtered.lofreq.vcf
+  """
+}
+
+process buildconsensus {
+  publishDir "$params.outdir/analysis", mode: "copy"
+  label 'process_low'
+
+  input:
+  set ( sampleprefix, file(vcfin) ) from filteredvcf
+  file ( fastaref ) from ch_fasta
+
+  output:
+  set ( sampleprefix, file("${sampleprefix}.consensus.fasta") ) into consensusfasta
+
+  """
+  module load GATK/4.1.3.0
+  gatk IndexFeatureFile -F $vcfin
+  gatk FastaAlternateReferenceMaker -R $fastaref -O ${sampleprefix}.consensus.fasta -V $vcfin
   """
 }
 
