@@ -18,10 +18,10 @@ def helpMessage() {
 
     The typical command for running the pipeline is as follows:
 
-    nextflow run nibscbioinformatics/viralevo --reads '*_R{1,2}.fastq.gz' -profile docker
+    nextflow run nibscbioinformatics/viralevo --input 'path/to/samples.tsv' -profile docker
 
     Mandatory arguments:
-      --reads [file]                Path to input data (must be surrounded with quotes)
+      --input [file]                TSV file indicating samples and corresponding reads
       -profile [str]                Configuration profile to use. Can use multiple (comma separated)
                                     Available: conda, docker, singularity, test, awsbatch, <institute> and more
 
@@ -94,29 +94,25 @@ ch_multiqc_config = file("$baseDir/assets/multiqc_config.yaml", checkIfExists: t
 ch_multiqc_custom_config = params.multiqc_config ? Channel.fromPath(params.multiqc_config, checkIfExists: true) : Channel.empty()
 ch_output_docs = file("$baseDir/docs/output.md", checkIfExists: true)
 
-/*
+/* ############################################
  * Create a channel for input read files
+ * ############################################
  */
-if (params.readPaths) {
-    if (params.single_end) {
-        Channel
-            .from(params.readPaths)
-            .map { row -> [ row[0], [ file(row[1][0], checkIfExists: true) ] ] }
-            .ifEmpty { exit 1, "params.readPaths was empty - no input files supplied" }
-            .into { ch_read_files_fastqc; ch_read_files_trimming }
-    } else {
-        Channel
-            .from(params.readPaths)
-            .map { row -> [ row[0], [ file(row[1][0], checkIfExists: true), file(row[1][1], checkIfExists: true) ] ] }
-            .ifEmpty { exit 1, "params.readPaths was empty - no input files supplied" }
-            .into { ch_read_files_fastqc; ch_read_files_trimming }
-    }
-} else {
-    Channel
-        .fromFilePairs(params.reads, size: params.single_end ? 1 : 2)
-        .ifEmpty { exit 1, "Cannot find any reads matching: ${params.reads}\nNB: Path needs to be enclosed in quotes!\nIf this is single-end data, please specify --single_end on the command line." }
-        .into { ch_read_files_fastqc; ch_read_files_trimming }
+
+inputSample = Channel.empty()
+if (params.input) {
+  tsvFile = file(params.input)
+  inputSample = readInputFile(tsvFile)
 }
+else {
+  log.info "No TSV file"
+  exit 1, 'No sample were defined, see --help'
+}
+
+
+
+
+
 
 // Header log info
 log.info nfcoreHeader()
@@ -653,5 +649,61 @@ def checkHostname() {
                 }
             }
         }
+    }
+}
+
+
+// ############## UTILITIES AND SAMPLE LOADING ######################
+
+def readInputFile(tsvFile) {
+    Channel.from(tsvFile)
+        .splitCsv(sep: '\t')
+        .map { row ->
+            def idSample  = row[0]
+            def file1      = returnFile(row[2])
+            def file2      = "null"
+            if (hasExtension(file1, "fastq.gz") || hasExtension(file1, "fq.gz")) {
+                checkNumberOfItem(row, 3)
+                file2 = returnFile(row[2])
+                if (!hasExtension(file2, "fastq.gz") && !hasExtension(file2, "fq.gz")) exit 1, "File: ${file2} has the wrong extension. See --help for more information"
+            }
+            // else if (hasExtension(file1, "bam")) checkNumberOfItem(row, 5)
+            // here we only use this function for fastq inputs and therefore we suppress bam files
+            else "No recognisable extension for input file: ${file1}"
+            [idSample, file1, file2]
+        }
+}
+
+// #### SAREK FUNCTIONS #########################
+def checkNumberOfItem(row, number) {
+    if (row.size() != number) exit 1, "Malformed row in TSV file: ${row}, see --help for more information"
+    return true
+}
+
+def hasExtension(it, extension) {
+    it.toString().toLowerCase().endsWith(extension.toLowerCase())
+}
+
+// Return file if it exists
+def returnFile(it) {
+    if (!file(it).exists()) exit 1, "Missing file in TSV file: ${it}, see --help for more information"
+    return file(it)
+}
+
+// Return status [0,1]
+// 0 == Control, 1 == Case
+def returnStatus(it) {
+    if (!(it in [0, 1])) exit 1, "Status is not recognized in TSV file: ${it}, see --help for more information"
+    return it
+}
+
+// ############### OTHER UTILS ##########################
+
+// Example usage: defaultIfInexistent({myVar}, "default")
+def defaultIfInexistent(varNameExpr, defaultValue) {
+    try {
+        varNameExpr()
+    } catch (exc) {
+        defaultValue
     }
 }
