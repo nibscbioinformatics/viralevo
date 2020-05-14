@@ -9,6 +9,8 @@
 ----------------------------------------------------------------------------------------
 */
 
+params.genome = 'SARS-CoV-2'
+
 def helpMessage() {
     // TODO nf-core: Add to this help message with new command line parameters
     log.info nfcoreHeader()
@@ -69,8 +71,11 @@ if (params.genomes && params.genome && !params.genomes.containsKey(params.genome
 //   input:
 //   file fasta from ch_fasta
 //
-params.fasta = params.genome ? params.genomes[ params.genome ].fasta ?: false : false
-if (params.fasta) { ch_fasta = file(params.fasta, checkIfExists: true) }
+//params.fasta = params.genome ? params.genomes[ params.genome ].fasta ?: false : false
+//if (params.fasta) { ch_fasta = file(params.fasta, checkIfExists: true) }
+
+params.anno = params.genome ? params.virus_reference[ params.genome ].anno ?: false : false
+if (params.anno) { ch_annotation = Channel.value(file(params.anno, checkIfExists: true)) }
 
 // Has the run name been specified by the user?
 //  this has the bonus effect of catching both -name and --name
@@ -108,10 +113,6 @@ else {
   log.info "No TSV file"
   exit 1, 'No sample were defined, see --help'
 }
-
-
-
-
 
 
 // Header log info
@@ -242,6 +243,93 @@ process multiqc {
     multiqc -f $rtitle $rfilename $custom_config_file .
     """
 }
+
+
+
+/*
+#############################################################
+## IVAR AMPLICON SEQUENCING SPECIFIC CALLING ################
+#############################################################
+https://andersen-lab.github.io/ivar/html/manualpage.html
+*/
+
+process ivarTrimming {
+
+  label 'process_low'
+  tag: "${sampleID}-ivarTrimming"
+
+  input:
+  tuple val(sampleID), file(bam), file(bai) from whatever_channel
+  file(primers) from primers_ch
+
+  output:
+  tuple val(sampleID), file("${sampleID}_primer_sorted.bam"), file("${sampleID}_primer_sorted.bam.bai") into (primer_trimmed_ch, ivar_prebam_ch)
+
+  script:
+  """
+  ivar trim \
+  -i $bam \
+  -b $primers \
+  -e -p "${sampleID}_primer_trimmed"
+
+  samtools sort -@ ${task.cpus} -o "${sampleID}_primer_sorted.bam" "${sample}_primer_trimmed.bam"
+  samtools index "${sampleID}_primer_sorted.bam"
+
+  """
+
+}
+
+
+
+process ivarCalling {
+  label 'process_low'
+  tag: "${sampleID}-ivar-calling"
+
+  publishDir "${params.outdir}/results/ivar/${sampleID}", mode: 'copy'
+
+  input:
+  tuple val(sampleID), file(trimmedbam), file(trimmedbai) from
+  file(fasta) from fasta_ch
+  file(gff) from ch_annotation
+
+  output:
+  tuple val(sampleID), file("${sampleID}_variants.tsv")
+
+  script:
+  """
+  samtools mpileup \
+  -aa -A -d 0 -B -Q 0 \
+  --reference $fasta \
+  $trimmedbam \
+  | ivar variants -p "${sampleID}_variants" \
+  -r $fasta \
+  -g $gff
+  """
+}
+
+
+process ivarConsensus {
+  label 'process_low'
+  tag: "${sampleID}-ivarConsensus"
+
+  publishDir "${params.outdir}/results/ivar/${sampleID}", mode: 'copy'
+
+  input:
+  tuple val(sampleID), file(bam), file(bai) from ivar_prebam_ch
+
+  output:
+  tuple val(sampleID), file("${sample}_consensus.fa"), file("${sample}_consensus.qual.txt") into ivar_consensus_ch
+
+  script:
+  """
+  samtools mpileup -aa -A -d 0 -Q 0 \
+  ${sample}_primer_sorted.bam \
+  | ivar consensus -t 0.01 -p ${sample}_consensus
+  """
+
+}
+
+
 
 /*
  * STEP 3 - Output Description HTML
