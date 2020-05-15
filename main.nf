@@ -765,7 +765,7 @@ def readInputFile(tsvFile) {
         .splitCsv(sep: '\t')
         .map { row ->
             def idSample  = row[0]
-            def file1      = returnFile(row[2])
+            def file1      = returnFile(row[1])
             def file2      = "null"
             if (hasExtension(file1, "fastq.gz") || hasExtension(file1, "fq.gz")) {
                 checkNumberOfItem(row, 3)
