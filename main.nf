@@ -308,6 +308,21 @@ process dotrimlog {
   """
 }
 
+process dospades {
+  publishDir "$params.outdir/alignments", mode: "copy"
+  label 'process_high'
+
+  input:
+  set ( sampleprefix, file(forwardfile), file(reversefile) ) from trimmingoutput2
+
+  output:
+  set ( sampleprefix, file("${sampleprefix}_spades") ) into spadesoutput
+
+  """
+  spades.py -o ${sampleprefix}_spades -1 $forwardfile -2 $reversefile -t ${task.cpus} -m 240 --cov-cutoff 10.0
+  """
+}
+
 process doalignment {
   label 'process_high'
 
