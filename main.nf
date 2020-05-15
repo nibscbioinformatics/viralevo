@@ -64,10 +64,11 @@ if (params.virus_reference && params.genome && !params.virus_reference.containsK
     exit 1, "The provided genome '${params.genome}' is not available in the iGenomes file. Currently the available genomes are ${params.genomes.keySet().join(", ")}"
 }
 
-params.anno = params.genome ? params.virus_reference[ params.genome ].gff ?: false : false
+params.anno = params.genome ? params.virus_reference[params.genome].gff ?: null : null
 if (params.anno) { ch_annotation = Channel.value(file(params.anno, checkIfExists: true)) }
+println(params.virus_reference[params.genome].gff)
 
-params.fasta = params.genome ? params.virus_reference[ params.genome ].fasta ?: false : false
+params.fasta = params.genome ? params.virus_reference[params.genome].fasta ?: null : null
 if (params.fasta) { ch_fasta = Channel.value(file(params.fasta, checkIfExists: true)) }
 
 
@@ -126,8 +127,8 @@ log.info nfcoreHeader()
 def summary = [:]
 if (workflow.revision) summary['Pipeline Release'] = workflow.revision
 summary['Run Name']         = custom_runName ?: workflow.runName
-// TODO nf-core: Report custom parameters here
 summary['Input']            = params.input
+summary['Genome']           = params.genome
 summary['Fasta Ref']        = params.fasta
 summary['Annotation file']  = params.anno
 summary['Max Resources']    = "$params.max_memory memory, $params.max_cpus cpus, $params.max_time time per job"
