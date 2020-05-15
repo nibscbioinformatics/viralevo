@@ -196,27 +196,6 @@ process get_software_versions {
 ch_fasta = params.fasta ? Channel.value(file(params.fasta)) : "null";
 ch_adapter = params.adapter ? Channel.value(file(params.adapter)) : "null";
 
-process BuildBWAindexes {
-    input:
-        file(fasta) from ch_fasta
-
-    output:
-        file("${fasta}.*") into ch_bwaIndex
-
-    script:
-    """
-    module load BWA/latest
-    bwa index ${fasta}
-    """
-}
-
-
-
-
-
-
-
-
 
 /*
  * STEP 1 - FastQC
@@ -274,8 +253,27 @@ process multiqc {
 
 //START OF NIBSC CUTADAPT-BWA-LOFREQ PIPELINE
 
+process BuildBWAindexes {
+
+    label 'process_medium'
+    tag: "BWA index"
+
+    input:
+        file(fasta) from ch_fasta
+
+    output:
+        file("${fasta}.*") into ch_bwaIndex
+
+    script:
+    """
+    bwa index ${fasta}
+    """
+}
+
+
 process docutadapt {
   label 'process_medium'
+  tag: "trimming ${sampleprefix}"
 
   input:
   set ( sampleprefix, file(forward), file(reverse) ) from inputSample
