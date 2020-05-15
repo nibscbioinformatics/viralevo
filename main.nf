@@ -66,7 +66,6 @@ if (params.virus_reference && params.genome && !params.virus_reference.containsK
 
 params.anno = params.genome ? params.virus_reference[params.genome].gff ?: null : null
 if (params.anno) { ch_annotation = Channel.value(file(params.anno, checkIfExists: true)) }
-println(params.virus_reference[params.genome].gff)
 
 params.fasta = params.genome ? params.virus_reference[params.genome].fasta ?: null : null
 if (params.fasta) { ch_fasta = Channel.value(file(params.fasta, checkIfExists: true)) }
