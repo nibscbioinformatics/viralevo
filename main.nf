@@ -514,7 +514,7 @@ process ivarCalling {
 
   input:
   tuple val(sampleID), file(trimmedbam), file(trimmedbai) from primer_trimmed_ch
-  file(fasta) from fasta_ch
+  file(fasta) from ch_fasta
   file(gff) from ch_annotation
 
   output:
