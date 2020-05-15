@@ -256,7 +256,7 @@ process multiqc {
 process BuildBWAindexes {
 
     label 'process_medium'
-    tag: "BWA index"
+    tag "BWA index"
 
     input:
         file(fasta) from ch_fasta
@@ -273,7 +273,7 @@ process BuildBWAindexes {
 
 process docutadapt {
   label 'process_medium'
-  tag: "trimming ${sampleprefix}"
+  tag "trimming ${sampleprefix}"
 
   input:
   set ( sampleprefix, file(forward), file(reverse) ) from inputSample
@@ -471,7 +471,7 @@ https://andersen-lab.github.io/ivar/html/manualpage.html
 process ivarTrimming {
 
   label 'process_low'
-  tag: "${sampleID}-ivarTrimming"
+  tag "${sampleID}-ivarTrimming"
 
   input:
   tuple val(sampleID), file(bam), file(bai) from whatever_channel
@@ -500,7 +500,7 @@ process ivarTrimming {
 
 process ivarCalling {
   label 'process_low'
-  tag: "${sampleID}-ivar-calling"
+  tag "${sampleID}-ivar-calling"
 
   publishDir "${params.outdir}/results/ivar/${sampleID}", mode: 'copy'
 
@@ -529,7 +529,7 @@ process ivarCalling {
 
 process ivarConsensus {
   label 'process_low'
-  tag: "${sampleID}-ivarConsensus"
+  tag "${sampleID}-ivarConsensus"
 
   publishDir "${params.outdir}/results/ivar/${sampleID}", mode: 'copy'
 
