@@ -272,115 +272,6 @@ process multiqc {
 
 
 
-/*
-#############################################################
-## IVAR AMPLICON SEQUENCING SPECIFIC CALLING ################
-#############################################################
-https://andersen-lab.github.io/ivar/html/manualpage.html
-*/
-
-process ivarTrimming {
-
-  label 'process_low'
-  tag: "${sampleID}-ivarTrimming"
-
-  input:
-  tuple val(sampleID), file(bam), file(bai) from whatever_channel
-  file(primers) from primers_ch
-
-  output:
-  tuple val(sampleID), file("${sampleID}_primer_sorted.bam"), file("${sampleID}_primer_sorted.bam.bai") into (primer_trimmed_ch, ivar_prebam_ch)
-
-  when: 'ivar' in tools
-
-  script:
-  """
-  ivar trim \
-  -i $bam \
-  -b $primers \
-  -e -p "${sampleID}_primer_trimmed"
-
-  samtools sort -@ ${task.cpus} -o "${sampleID}_primer_sorted.bam" "${sample}_primer_trimmed.bam"
-  samtools index "${sampleID}_primer_sorted.bam"
-
-  """
-
-}
-
-
-
-process ivarCalling {
-  label 'process_low'
-  tag: "${sampleID}-ivar-calling"
-
-  publishDir "${params.outdir}/results/ivar/${sampleID}", mode: 'copy'
-
-  input:
-  tuple val(sampleID), file(trimmedbam), file(trimmedbai) from
-  file(fasta) from fasta_ch
-  file(gff) from ch_annotation
-
-  output:
-  tuple val(sampleID), file("${sampleID}_variants.tsv")
-
-  when: 'ivar' in tools
-
-  script:
-  """
-  samtools mpileup \
-  -aa -A -d 0 -B -Q 0 \
-  --reference $fasta \
-  $trimmedbam \
-  | ivar variants -p "${sampleID}_variants" \
-  -r $fasta \
-  -g $gff
-  """
-}
-
-
-process ivarConsensus {
-  label 'process_low'
-  tag: "${sampleID}-ivarConsensus"
-
-  publishDir "${params.outdir}/results/ivar/${sampleID}", mode: 'copy'
-
-  input:
-  tuple val(sampleID), file(bam), file(bai) from ivar_prebam_ch
-
-  when: 'ivar' in tools
-
-  output:
-  tuple val(sampleID), file("${sample}_consensus.fa"), file("${sample}_consensus.qual.txt") into ivar_consensus_ch
-
-  script:
-  """
-  samtools mpileup -aa -A -d 0 -Q 0 \
-  ${sample}_primer_sorted.bam \
-  | ivar consensus -t 0.01 -p ${sample}_consensus
-  """
-
-}
-
-
-
-/*
- * STEP 3 - Output Description HTML
- */
-process output_documentation {
-    publishDir "${params.outdir}/pipeline_info", mode: 'copy'
-
-    input:
-    file output_docs from ch_output_docs
-
-    output:
-    file "results_description.html"
-
-    script:
-    """
-    markdown_to_html.py $output_docs -o results_description.html
-    """
-}
-
 //START OF NIBSC CUTADAPT-BWA-LOFREQ PIPELINE
 
 process docutadapt {
@@ -570,6 +461,116 @@ process buildconsensus {
 //END OF NIBSC CUTADAPT-BWA-LOFREQ PIPELINE
 
 
+
+
+/*
+#############################################################
+## IVAR AMPLICON SEQUENCING SPECIFIC CALLING ################
+#############################################################
+https://andersen-lab.github.io/ivar/html/manualpage.html
+*/
+
+process ivarTrimming {
+
+  label 'process_low'
+  tag: "${sampleID}-ivarTrimming"
+
+  input:
+  tuple val(sampleID), file(bam), file(bai) from whatever_channel
+  file(primers) from primers_ch
+
+  output:
+  tuple val(sampleID), file("${sampleID}_primer_sorted.bam"), file("${sampleID}_primer_sorted.bam.bai") into (primer_trimmed_ch, ivar_prebam_ch)
+
+  when: 'ivar' in tools
+
+  script:
+  """
+  ivar trim \
+  -i $bam \
+  -b $primers \
+  -e -p "${sampleID}_primer_trimmed"
+
+  samtools sort -@ ${task.cpus} -o "${sampleID}_primer_sorted.bam" "${sample}_primer_trimmed.bam"
+  samtools index "${sampleID}_primer_sorted.bam"
+
+  """
+
+}
+
+
+
+process ivarCalling {
+  label 'process_low'
+  tag: "${sampleID}-ivar-calling"
+
+  publishDir "${params.outdir}/results/ivar/${sampleID}", mode: 'copy'
+
+  input:
+  tuple val(sampleID), file(trimmedbam), file(trimmedbai) from
+  file(fasta) from fasta_ch
+  file(gff) from ch_annotation
+
+  output:
+  tuple val(sampleID), file("${sampleID}_variants.tsv")
+
+  when: 'ivar' in tools
+
+  script:
+  """
+  samtools mpileup \
+  -aa -A -d 0 -B -Q 0 \
+  --reference $fasta \
+  $trimmedbam \
+  | ivar variants -p "${sampleID}_variants" \
+  -r $fasta \
+  -g $gff
+  """
+}
+
+
+process ivarConsensus {
+  label 'process_low'
+  tag: "${sampleID}-ivarConsensus"
+
+  publishDir "${params.outdir}/results/ivar/${sampleID}", mode: 'copy'
+
+  input:
+  tuple val(sampleID), file(bam), file(bai) from ivar_prebam_ch
+
+  when: 'ivar' in tools
+
+  output:
+  tuple val(sampleID), file("${sample}_consensus.fa"), file("${sample}_consensus.qual.txt") into ivar_consensus_ch
+
+  script:
+  """
+  samtools mpileup -aa -A -d 0 -Q 0 \
+  ${sample}_primer_sorted.bam \
+  | ivar consensus -t 0.01 -p ${sample}_consensus
+  """
+
+}
+
+
+
+/*
+ * STEP 3 - Output Description HTML
+ */
+process output_documentation {
+    publishDir "${params.outdir}/pipeline_info", mode: 'copy'
+
+    input:
+    file output_docs from ch_output_docs
+
+    output:
+    file "results_description.html"
+
+    script:
+    """
+    markdown_to_html.py $output_docs -o results_description.html
+    """
+}
 
 /*
  * Completion e-mail notification
