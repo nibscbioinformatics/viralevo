@@ -110,7 +110,7 @@ ch_output_docs = file("$baseDir/docs/output.md", checkIfExists: true)
 inputSample = Channel.empty()
 if (params.input) {
   tsvFile = file(params.input)
-  inputSample = readInputFile(tsvFile)
+  inputSamples = readInputFile(tsvFile)
 }
 else {
   log.info "No TSV file"
@@ -120,6 +120,7 @@ else {
 // splitting the reads into fastq and processing
 
 (ch_read_files_fastqc, inputSample) = inputSample.into(2)
+
 
 // Header log info
 log.info nfcoreHeader()
@@ -307,6 +308,21 @@ process dotrimlog {
   """
 }
 
+process dospades {
+  publishDir "$params.outdir/alignments", mode: "copy"
+  label 'process_high'
+
+  input:
+  set ( sampleprefix, file(forwardfile), file(reversefile) ) from trimmingoutput2
+
+  output:
+  set ( sampleprefix, file("${sampleprefix}_spades") ) into spadesoutput
+
+  """
+  spades.py -o ${sampleprefix}_spades -1 $forwardfile -2 $reversefile -t ${task.cpus} -m 120 --cov-cutoff 10.0
+  """
+}
+
 process doalignment {
   label 'process_high'
 
@@ -388,9 +404,11 @@ process doalignmentlog {
   """
 }
 
+
 if( 'ivar' in tools ){
   (bam_for_call_ch, bam_for_ivar_ch) = bam_for_call_ch.into(2)
 }
+
 
 
 process varcall {
@@ -398,6 +416,7 @@ process varcall {
   label 'process_high'
 
   input:
+
   set ( sampleprefix, file(indelqualfile), file(samindexfile) ) from bam_for_call_ch
   file( fastaref ) from ch_fasta
 
@@ -406,6 +425,8 @@ process varcall {
 
   when: 'lofreq' in tools
 
+  when: 'lofreq' in tools
+  
   """
   lofreq call-parallel \
   --pp-threads ${task.cpus} \
