@@ -63,8 +63,12 @@ if (params.genomes && params.genome && !params.genomes.containsKey(params.genome
     exit 1, "The provided genome '${params.genome}' is not available in the iGenomes file. Currently the available genomes are ${params.genomes.keySet().join(", ")}"
 }
 
-// TODO nf-core: Add any reference files that are needed
-// Configurable reference genomes
+
+// ### TOOLS Configuration
+toolList = defaultToolList()
+tools = params.tools ? params.tools.split(',').collect{it.trim().toLowerCase()} : []
+if (!checkListMatch(tools, toolList)) exit 1, 'Unknown tool(s), see --help for more information'
+
 //
 // NOTE - THIS IS NOT USED IN THIS PIPELINE, EXAMPLE ONLY
 // If you want to use the channel below in a process, define the following:
@@ -265,6 +269,8 @@ process ivarTrimming {
   output:
   tuple val(sampleID), file("${sampleID}_primer_sorted.bam"), file("${sampleID}_primer_sorted.bam.bai") into (primer_trimmed_ch, ivar_prebam_ch)
 
+  when: 'ivar' in tools
+
   script:
   """
   ivar trim \
@@ -295,6 +301,8 @@ process ivarCalling {
   output:
   tuple val(sampleID), file("${sampleID}_variants.tsv")
 
+  when: 'ivar' in tools
+
   script:
   """
   samtools mpileup \
@@ -316,6 +324,8 @@ process ivarConsensus {
 
   input:
   tuple val(sampleID), file(bam), file(bai) from ivar_prebam_ch
+
+  when: 'ivar' in tools
 
   output:
   tuple val(sampleID), file("${sample}_consensus.fa"), file("${sample}_consensus.qual.txt") into ivar_consensus_ch
@@ -794,4 +804,32 @@ def defaultIfInexistent(varNameExpr, defaultValue) {
     } catch (exc) {
         defaultValue
     }
+}
+
+
+// ########## DEFINES TOOLS TO BE USED IN THIS PIPELINE #########
+
+def defaultToolList() {
+    return [
+        'lofreq',
+        'ivar',
+        'snpeff'
+    ]
+}
+
+
+// Check if match existence
+def checkIfExists(it, list) {
+    if (!list.contains(it)) {
+        log.warn "Unknown parameter: ${it}"
+        return false
+    }
+    return true
+}
+
+
+/// check if present
+// Compare each parameter with a list of parameters
+def checkListMatch(allList, listToCheck) {
+    return allList.every{ checkIfExists(it, listToCheck) }
 }
