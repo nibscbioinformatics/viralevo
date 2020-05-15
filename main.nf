@@ -319,7 +319,7 @@ process dospades {
   set ( sampleprefix, file("${sampleprefix}_spades") ) into spadesoutput
 
   """
-  spades.py -o ${sampleprefix}_spades -1 $forwardfile -2 $reversefile -t ${task.cpus} -m 240 --cov-cutoff 10.0
+  spades.py -o ${sampleprefix}_spades -1 $forwardfile -2 $reversefile -t ${task.cpus} -m 120 --cov-cutoff 10.0
   """
 }
 
