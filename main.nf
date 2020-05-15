@@ -376,22 +376,21 @@ process doalignmentlog {
 }
 
 forcall = indelqualforcall.join(samindex)
-forcall.into {
-  forcall1
-  forcall2
-}
+(bamforcall, bamfordepth) = forcall.into(2)
 
 process varcall {
   publishDir "$params.outdir/analysis", mode: "copy"
   label 'process_high'
 
   input:
-  set ( sampleprefix, file(indelqualfile), file(samindexfile) ) from forcall1
+  set ( sampleprefix, file(indelqualfile), file(samindexfile) ) from bamforcall
   file( fastaref ) from ch_fasta
 
   output:
   set ( sampleprefix, file("${sampleprefix}.lofreq.vcf") ) into (finishedcalls, finishedcallsforconsensus)
 
+  when: 'lofreq' in tools
+  
   """
   lofreq call -f $fastaref -o ${sampleprefix}.lofreq.vcf --call-indels $indelqualfile
   """
@@ -422,6 +421,8 @@ process makevartable {
   output:
   set ( sampleprefix, file("${sampleprefix}-variants.csv") ) into nicetable
 
+  when: 'lofreq' in tools
+
   """
   python $baseDir/scripts/tablefromvcf.py $lofreqout ${sampleprefix}-variants.csv
   """
@@ -435,6 +436,8 @@ process makefilteredcalls {
 
   output:
   set ( sampleprefix, file("${sampleprefix}.filtered.lofreq.vcf") ) into filteredvcf
+
+  when: 'lofreq' in tools
 
   """
   python $baseDir/scripts/filtervcf.py $lofreqout ${sampleprefix}.filtered.lofreq.vcf
@@ -451,6 +454,8 @@ process buildconsensus {
 
   output:
   set ( sampleprefix, file("${sampleprefix}.consensus.fasta") ) into consensusfasta
+
+  when: 'lofreq' in tools
 
   """
   bcftools view $vcfin -Oz -o {sampleprefix}.vcf.gz
@@ -477,7 +482,7 @@ process ivarTrimming {
   tag "${sampleID}-ivarTrimming"
 
   input:
-  tuple val(sampleID), file(bam), file(bai) from whatever_channel
+  tuple val(sampleID), file(bam), file(bai) from bamforcall
   file(primers) from primers_ch
 
   output:
