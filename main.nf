@@ -407,6 +407,8 @@ process doalignmentlog {
 
 if( 'ivar' in tools ){
   (bam_for_call_ch, bam_for_ivar_ch) = bam_for_call_ch.into(2)
+} else {
+bam_for_ivar_ch = Channel.empty()
 }
 
 
