@@ -68,10 +68,12 @@ params.anno = params.genome ? params.virus_reference[ params.genome ].anno ?: fa
 if (params.anno) { ch_annotation = Channel.value(file(params.anno, checkIfExists: true)) }
 
 params.fasta = params.genome ? params.virus_reference[ params.genome ].fasta ?: false : false
-if (params.fasta) { ch_annotation = Channel.value(file(params.fasta, checkIfExists: true)) }
+if (params.fasta) { ch_fasta = Channel.value(file(params.fasta, checkIfExists: true)) }
 
 
 primers_ch = params.primers ? Channel.value(file(params.primers)) : "null"
+
+ch_adapter = params.adapter ? Channel.value(file(params.adapter)) : "null"
 
 // ### TOOLS Configuration
 toolList = defaultToolList()
@@ -114,6 +116,10 @@ else {
   log.info "No TSV file"
   exit 1, 'No sample were defined, see --help'
 }
+
+// splitting the reads into fastq and processing
+
+(ch_read_files_fastqc, inputSample) = inputSample.into(2)
 
 // Header log info
 log.info nfcoreHeader()
@@ -192,14 +198,6 @@ process get_software_versions {
     """
 }
 
-/* ##################################################
- * Creating channels for references and their indices
- * ##################################################
- */
-
-ch_fasta = params.fasta ? Channel.value(file(params.fasta)) : "null";
-ch_adapter = params.adapter ? Channel.value(file(params.adapter)) : "null";
-
 
 /*
  * STEP 1 - FastQC
@@ -213,14 +211,14 @@ process fastqc {
                 }
 
     input:
-    set val(name), file(reads) from ch_read_files_fastqc
+    set val(name), file(read1), file(read2) from ch_read_files_fastqc
 
     output:
     file "*_fastqc.{zip,html}" into ch_fastqc_results
 
     script:
     """
-    fastqc --quiet --threads $task.cpus $reads
+    fastqc --quiet --threads $task.cpus $read1 $read2
     """
 }
 
