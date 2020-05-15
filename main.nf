@@ -9,6 +9,8 @@
 ----------------------------------------------------------------------------------------
 */
 
+params.genome = 'SARS-CoV-2'
+
 def helpMessage() {
     // TODO nf-core: Add to this help message with new command line parameters
     log.info nfcoreHeader()
@@ -61,6 +63,17 @@ if (params.help) {
 if (params.genomes && params.genome && !params.genomes.containsKey(params.genome)) {
     exit 1, "The provided genome '${params.genome}' is not available in the iGenomes file. Currently the available genomes are ${params.genomes.keySet().join(", ")}"
 }
+
+
+// ### TOOLS Configuration
+toolList = defaultToolList()
+tools = params.tools ? params.tools.split(',').collect{it.trim().toLowerCase()} : []
+if (!checkListMatch(tools, toolList)) exit 1, 'Unknown tool(s), see --help for more information'
+
+params.anno = params.genome ? params.virus_reference[ params.genome ].anno ?: false : false
+if (params.anno) { ch_annotation = Channel.value(file(params.anno, checkIfExists: true)) }
+
+
 // Has the run name been specified by the user?
 //  this has the bonus effect of catching both -name and --name
 custom_runName = params.name
@@ -256,6 +269,99 @@ process multiqc {
     multiqc -f $rtitle $rfilename $custom_config_file .
     """
 }
+
+
+
+/*
+#############################################################
+## IVAR AMPLICON SEQUENCING SPECIFIC CALLING ################
+#############################################################
+https://andersen-lab.github.io/ivar/html/manualpage.html
+*/
+
+process ivarTrimming {
+
+  label 'process_low'
+  tag: "${sampleID}-ivarTrimming"
+
+  input:
+  tuple val(sampleID), file(bam), file(bai) from whatever_channel
+  file(primers) from primers_ch
+
+  output:
+  tuple val(sampleID), file("${sampleID}_primer_sorted.bam"), file("${sampleID}_primer_sorted.bam.bai") into (primer_trimmed_ch, ivar_prebam_ch)
+
+  when: 'ivar' in tools
+
+  script:
+  """
+  ivar trim \
+  -i $bam \
+  -b $primers \
+  -e -p "${sampleID}_primer_trimmed"
+
+  samtools sort -@ ${task.cpus} -o "${sampleID}_primer_sorted.bam" "${sample}_primer_trimmed.bam"
+  samtools index "${sampleID}_primer_sorted.bam"
+
+  """
+
+}
+
+
+
+process ivarCalling {
+  label 'process_low'
+  tag: "${sampleID}-ivar-calling"
+
+  publishDir "${params.outdir}/results/ivar/${sampleID}", mode: 'copy'
+
+  input:
+  tuple val(sampleID), file(trimmedbam), file(trimmedbai) from
+  file(fasta) from fasta_ch
+  file(gff) from ch_annotation
+
+  output:
+  tuple val(sampleID), file("${sampleID}_variants.tsv")
+
+  when: 'ivar' in tools
+
+  script:
+  """
+  samtools mpileup \
+  -aa -A -d 0 -B -Q 0 \
+  --reference $fasta \
+  $trimmedbam \
+  | ivar variants -p "${sampleID}_variants" \
+  -r $fasta \
+  -g $gff
+  """
+}
+
+
+process ivarConsensus {
+  label 'process_low'
+  tag: "${sampleID}-ivarConsensus"
+
+  publishDir "${params.outdir}/results/ivar/${sampleID}", mode: 'copy'
+
+  input:
+  tuple val(sampleID), file(bam), file(bai) from ivar_prebam_ch
+
+  when: 'ivar' in tools
+
+  output:
+  tuple val(sampleID), file("${sample}_consensus.fa"), file("${sample}_consensus.qual.txt") into ivar_consensus_ch
+
+  script:
+  """
+  samtools mpileup -aa -A -d 0 -Q 0 \
+  ${sample}_primer_sorted.bam \
+  | ivar consensus -t 0.01 -p ${sample}_consensus
+  """
+
+}
+
+
 
 /*
  * STEP 3 - Output Description HTML
@@ -679,4 +785,32 @@ def defaultIfInexistent(varNameExpr, defaultValue) {
     } catch (exc) {
         defaultValue
     }
+}
+
+
+// ########## DEFINES TOOLS TO BE USED IN THIS PIPELINE #########
+
+def defaultToolList() {
+    return [
+        'lofreq',
+        'ivar',
+        'snpeff'
+    ]
+}
+
+
+// Check if match existence
+def checkIfExists(it, list) {
+    if (!list.contains(it)) {
+        log.warn "Unknown parameter: ${it}"
+        return false
+    }
+    return true
+}
+
+
+/// check if present
+// Compare each parameter with a list of parameters
+def checkListMatch(allList, listToCheck) {
+    return allList.every{ checkIfExists(it, listToCheck) }
 }

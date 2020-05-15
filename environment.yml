@@ -18,10 +18,8 @@ dependencies:
   - bioconda::ivar=1.2.2
   - bioconda::spades=3.14.0
   - bioconda::mauve=2.4.0.snapshot_2015_02_13
-  - bioconda::quast=5.0.2
   - bioconda::bandage=0.8.1
-  - bioconda::bcftools= 1.10.2
-  - conda-forge::texlive-core=20180414
+  - bioconda::bcftools= 1.8
   - conda-forge::pandoc=2.9.2.1
   - r::r=3.6.0
   - r::r-tidyverse=1.2.1
