@@ -110,7 +110,7 @@ ch_output_docs = file("$baseDir/docs/output.md", checkIfExists: true)
 inputSample = Channel.empty()
 if (params.input) {
   tsvFile = file(params.input)
-  inputSamples = readInputFile(tsvFile)
+  inputSample = readInputFile(tsvFile)
 }
 else {
   log.info "No TSV file"
@@ -279,8 +279,8 @@ process docutadapt {
   tag "trimming ${sampleprefix}"
 
   input:
-  set ( sampleprefix, file(forward), file(reverse) ) from inputSample
-  file( adapterfile ) from ch_adapter
+  tuple sampleprefix, file(forward), file(reverse) from inputSample
+  file(adapterfile) from ch_adapter
 
   output:
   set ( sampleprefix, file("${sampleprefix}.R1.trimmed.fastq.gz"), file("${sampleprefix}.R2.trimmed.fastq.gz") ) into (trimmingoutput1, trimmingoutput2)
@@ -428,7 +428,7 @@ process varcall {
   when: 'lofreq' in tools
 
   when: 'lofreq' in tools
-  
+
   """
   lofreq call-parallel \
   --pp-threads ${task.cpus} \
