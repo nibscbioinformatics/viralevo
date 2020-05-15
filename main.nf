@@ -513,7 +513,7 @@ process ivarCalling {
   publishDir "${params.outdir}/results/ivar/${sampleID}", mode: 'copy'
 
   input:
-  tuple val(sampleID), file(trimmedbam), file(trimmedbai) from
+  tuple val(sampleID), file(trimmedbam), file(trimmedbai) from primer_trimmed_ch
   file(fasta) from fasta_ch
   file(gff) from ch_annotation
 
