@@ -288,7 +288,7 @@ process docutadapt {
 
   script:
   """
-  cutadapt -a $adapterfile -A $adapterfile -g $adapterfile -G $adapterfile -o ${sampleprefix}.R1.trimmed.fastq.gz -p ${sampleprefix}.R2.trimmed.fastq.gz $forward $reverse -q 30,30 --minimum-length 50 --times 40 -e 0.1 --max-n 0 > ${sampleprefix}.trim.out 2> ${sampleprefix}.trim.err
+  cutadapt -a file:${adapterfile} -A file:${adapterfile} -g file:${adapterfile} -G file:${adapterfile} -o ${sampleprefix}.R1.trimmed.fastq.gz -p ${sampleprefix}.R2.trimmed.fastq.gz $forward $reverse -q 30,30 --minimum-length 50 --times 40 -e 0.1 --max-n 0 > ${sampleprefix}.trim.out 2> ${sampleprefix}.trim.err
   """
 }
 
