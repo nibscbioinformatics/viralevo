@@ -129,7 +129,7 @@ summary['Run Name']         = custom_runName ?: workflow.runName
 // TODO nf-core: Report custom parameters here
 summary['Input']            = params.input
 summary['Fasta Ref']        = params.fasta
-summary['Annotation file']        = params.anno
+summary['Annotation file']  = params.anno
 summary['Max Resources']    = "$params.max_memory memory, $params.max_cpus cpus, $params.max_time time per job"
 if (workflow.containerEngine) summary['Container'] = "$workflow.containerEngine - $workflow.container"
 summary['Output dir']       = params.outdir
