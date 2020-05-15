@@ -68,7 +68,7 @@ params.anno = params.genome ? params.virus_reference[ params.genome ].anno ?: fa
 if (params.anno) { ch_annotation = Channel.value(file(params.anno, checkIfExists: true)) }
 
 params.fasta = params.genome ? params.virus_reference[ params.genome ].fasta ?: false : false
-if (params.fasta) { ch_annotation = Channel.value(file(params.anno, checkIfExists: true)) }
+if (params.fasta) { ch_annotation = Channel.value(file(params.fasta, checkIfExists: true)) }
 
 
 primers_ch = params.primers ? Channel.value(file(params.primers)) : "null"
