@@ -104,12 +104,15 @@ ch_output_docs = file("$baseDir/docs/output.md", checkIfExists: true)
 inputSample = Channel.empty()
 if (params.input) {
   tsvFile = file(params.input)
-  inputSample = readInputFile(tsvFile)
+  inputSamples = readInputFile(tsvFile)
 }
 else {
   log.info "No TSV file"
   exit 1, 'No sample were defined, see --help'
 }
+
+(inputSample, ch_read_files_fastqc) = inputSamples.into(2)
+
 
 // Header log info
 log.info nfcoreHeader()
