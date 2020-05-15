@@ -401,7 +401,7 @@ process dodepth {
   label 'process_low'
 
   input:
-  set ( sampleprefix, file(indelqualfile), file(samindexfile) ) from forcall2
+  set ( sampleprefix, file(indelqualfile), file(samindexfile) ) from bamfordepth
 
   output:
   set ( sampleprefix, file("${sampleprefix}.samtools.depth") ) into samdepthout
