@@ -71,6 +71,8 @@ params.fasta = params.genome ? params.virus_reference[ params.genome ].fasta ?: 
 if (params.fasta) { ch_annotation = Channel.value(file(params.anno, checkIfExists: true)) }
 
 
+primers_ch = params.primers ? Channel.value(file(params.primers)) : "null"
+
 // ### TOOLS Configuration
 toolList = defaultToolList()
 tools = params.tools ? params.tools.split(',').collect{it.trim().toLowerCase()} : []
@@ -258,7 +260,7 @@ process multiqc {
 process BuildBWAindexes {
 
     label 'process_medium'
-    tag: "BWA index"
+    tag "BWA index"
 
     input:
         file(fasta) from ch_fasta
@@ -275,7 +277,7 @@ process BuildBWAindexes {
 
 process docutadapt {
   label 'process_medium'
-  tag: "trimming ${sampleprefix}"
+  tag "trimming ${sampleprefix}"
 
   input:
   set ( sampleprefix, file(forward), file(reverse) ) from inputSample
@@ -498,7 +500,7 @@ https://andersen-lab.github.io/ivar/html/manualpage.html
 process ivarTrimming {
 
   label 'process_low'
-  tag: "${sampleID}-ivarTrimming"
+  tag "${sampleID}-ivarTrimming"
 
   input:
   tuple val(sampleID), file(bam), file(bai) from bam_for_ivar_ch
@@ -527,12 +529,12 @@ process ivarTrimming {
 
 process ivarCalling {
   label 'process_low'
-  tag: "${sampleID}-ivar-calling"
+  tag "${sampleID}-ivar-calling"
 
   publishDir "${params.outdir}/results/ivar/${sampleID}", mode: 'copy'
 
   input:
-  tuple val(sampleID), file(trimmedbam), file(trimmedbai) from
+  tuple val(sampleID), file(trimmedbam), file(trimmedbai) from primer_trimmed_ch
   file(fasta) from fasta_ch
   file(gff) from ch_annotation
 
@@ -556,7 +558,7 @@ process ivarCalling {
 
 process ivarConsensus {
   label 'process_low'
-  tag: "${sampleID}-ivarConsensus"
+  tag "${sampleID}-ivarConsensus"
 
   publishDir "${params.outdir}/results/ivar/${sampleID}", mode: 'copy'
 
