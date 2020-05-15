@@ -64,7 +64,7 @@ if (params.virus_reference && params.genome && !params.virus_reference.containsK
     exit 1, "The provided genome '${params.genome}' is not available in the iGenomes file. Currently the available genomes are ${params.genomes.keySet().join(", ")}"
 }
 
-params.anno = params.genome ? params.virus_reference[ params.genome ].anno ?: false : false
+params.anno = params.genome ? params.virus_reference[ params.genome ].gff ?: false : false
 if (params.anno) { ch_annotation = Channel.value(file(params.anno, checkIfExists: true)) }
 
 params.fasta = params.genome ? params.virus_reference[ params.genome ].fasta ?: false : false
@@ -517,7 +517,7 @@ process ivarTrimming {
   -e -p "${sampleID}_primer_trimmed"
 
   samtools sort -@ ${task.cpus} -o "${sampleID}_primer_sorted.bam" "${sample}_primer_trimmed.bam"
-  samtools index "${sampleID}_primer_sorted.bam"
+  samtools index -@ ${task.cpus} "${sampleID}_primer_sorted.bam"
 
   """
 
@@ -533,7 +533,7 @@ process ivarCalling {
 
   input:
   tuple val(sampleID), file(trimmedbam), file(trimmedbai) from primer_trimmed_ch
-  file(fasta) from fasta_ch
+  file(fasta) from ch_fasta
   file(gff) from ch_annotation
 
   output:
