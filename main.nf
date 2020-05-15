@@ -376,14 +376,14 @@ process doalignmentlog {
 }
 
 forcall = indelqualforcall.join(samindex)
-(bamforcall, bamfordepth) = forcall.into(2)
+(bamforlofreq, bamforivar, bamfordepth) = forcall.into(3)
 
 process varcall {
   publishDir "$params.outdir/analysis", mode: "copy"
   label 'process_high'
 
   input:
-  set ( sampleprefix, file(indelqualfile), file(samindexfile) ) from bamforcall
+  set ( sampleprefix, file(indelqualfile), file(samindexfile) ) from bamforlofreq
   file( fastaref ) from ch_fasta
 
   output:
@@ -482,7 +482,7 @@ process ivarTrimming {
   tag "${sampleID}-ivarTrimming"
 
   input:
-  tuple val(sampleID), file(bam), file(bai) from bamforcall
+  tuple val(sampleID), file(bam), file(bai) from bamforivar
   file(primers) from primers_ch
 
   output:
