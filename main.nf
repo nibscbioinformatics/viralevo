@@ -198,7 +198,7 @@ process get_software_versions {
 
 ch_fasta = params.fasta ? Channel.value(file(params.fasta)) : "null";
 ch_adapter = params.adapter ? Channel.value(file(params.adapter)) : "null";
-
+primers_ch = params.primers ? Channel.value(file(params.primers)) : "null";
 
 /*
  * STEP 1 - FastQC
