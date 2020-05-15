@@ -10,6 +10,7 @@
 */
 
 params.genome = 'SARS-CoV-2'
+params.adapter = 'https://raw.githubusercontent.com/nibscbioinformatics/testdata/master/covid19/nexteraPE.fasta'
 
 def helpMessage() {
     // TODO nf-core: Add to this help message with new command line parameters
@@ -32,7 +33,6 @@ def helpMessage() {
       --single_end [bool]             Specifies that the input is single-end reads
 
     References                        If not specified in the configuration file or you wish to overwrite any of the references
-      --fasta [file]                  Path to fasta reference
       --adapter [file]                Path to fasta for adapter sequences to be trimmed
 
     Other options:
@@ -60,19 +60,25 @@ if (params.help) {
  */
 
 // Check if genome exists in the config file
-if (params.genomes && params.genome && !params.genomes.containsKey(params.genome)) {
+if (params.virus_reference && params.genome && !params.virus_reference.containsKey(params.genome)) {
     exit 1, "The provided genome '${params.genome}' is not available in the iGenomes file. Currently the available genomes are ${params.genomes.keySet().join(", ")}"
 }
 
+params.anno = params.genome ? params.virus_reference[params.genome].gff ?: null : null
+if (params.anno) { ch_annotation = Channel.value(file(params.anno, checkIfExists: true)) }
+
+params.fasta = params.genome ? params.virus_reference[params.genome].fasta ?: null : null
+if (params.fasta) { ch_fasta = Channel.value(file(params.fasta, checkIfExists: true)) }
+
+
+primers_ch = params.primers ? Channel.value(file(params.primers)) : "null"
+
+ch_adapter = params.adapter ? Channel.value(file(params.adapter)) : "null"
 
 // ### TOOLS Configuration
 toolList = defaultToolList()
 tools = params.tools ? params.tools.split(',').collect{it.trim().toLowerCase()} : []
 if (!checkListMatch(tools, toolList)) exit 1, 'Unknown tool(s), see --help for more information'
-
-params.anno = params.genome ? params.virus_reference[ params.genome ].anno ?: false : false
-if (params.anno) { ch_annotation = Channel.value(file(params.anno, checkIfExists: true)) }
-
 
 // Has the run name been specified by the user?
 //  this has the bonus effect of catching both -name and --name
@@ -111,15 +117,19 @@ else {
   exit 1, 'No sample were defined, see --help'
 }
 
+// splitting the reads into fastq and processing
+
+(ch_read_files_fastqc, inputSample) = inputSample.into(2)
+
 // Header log info
 log.info nfcoreHeader()
 def summary = [:]
 if (workflow.revision) summary['Pipeline Release'] = workflow.revision
 summary['Run Name']         = custom_runName ?: workflow.runName
-// TODO nf-core: Report custom parameters here
-summary['Reads']            = params.reads
+summary['Input']            = params.input
+summary['Genome']           = params.genome
 summary['Fasta Ref']        = params.fasta
-summary['Data Type']        = params.single_end ? 'Single-End' : 'Paired-End'
+summary['Annotation file']  = params.anno
 summary['Max Resources']    = "$params.max_memory memory, $params.max_cpus cpus, $params.max_time time per job"
 if (workflow.containerEngine) summary['Container'] = "$workflow.containerEngine - $workflow.container"
 summary['Output dir']       = params.outdir
@@ -188,14 +198,6 @@ process get_software_versions {
     """
 }
 
-/* ##################################################
- * Creating channels for references and their indices
- * ##################################################
- */
-
-ch_fasta = params.fasta ? Channel.value(file(params.fasta)) : "null";
-ch_adapter = params.adapter ? Channel.value(file(params.adapter)) : "null";
-
 
 /*
  * STEP 1 - FastQC
@@ -209,14 +211,14 @@ process fastqc {
                 }
 
     input:
-    set val(name), file(reads) from ch_read_files_fastqc
+    set val(name), file(read1), file(read2) from ch_read_files_fastqc
 
     output:
     file "*_fastqc.{zip,html}" into ch_fastqc_results
 
     script:
     """
-    fastqc --quiet --threads $task.cpus $reads
+    fastqc --quiet --threads $task.cpus $read1 $read2
     """
 }
 
@@ -256,7 +258,7 @@ process multiqc {
 process BuildBWAindexes {
 
     label 'process_medium'
-    tag: "BWA index"
+    tag "BWA index"
 
     input:
         file(fasta) from ch_fasta
@@ -273,7 +275,7 @@ process BuildBWAindexes {
 
 process docutadapt {
   label 'process_medium'
-  tag: "trimming ${sampleprefix}"
+  tag "trimming ${sampleprefix}"
 
   input:
   set ( sampleprefix, file(forward), file(reverse) ) from inputSample
@@ -314,17 +316,23 @@ process doalignment {
   file ( bwaindex ) from ch_bwaIndex
 
   output:
-  set (sampleprefix, file("${sampleprefix}.sorted.bam") ) into sortedbam
+  set (sampleprefix, file("${sampleprefix}_sorted.bam") ) into sortedbam
 
   script:
   """
-  bwa mem -t ${task.cpus} -R '@RG\\tID:${sampleprefix}\\tSM:${sampleprefix}\\tPL:Illumina' $fastaref ${forwardtrimmed} ${reversetrimmed} | samtools sort -o ${sampleprefix}.sorted.bam -O BAM
+  bwa mem \
+  -t ${task.cpus} \
+  -R '@RG\\tID:${sampleprefix}\\tSM:${sampleprefix}\\tPL:Illumina' \
+  $fastaref \
+  ${forwardtrimmed} ${reversetrimmed} \
+  | samtools sort -@ ${task.cpus} \
+  -o ${sampleprefix}_sorted.bam -O BAM
   """
 }
 
 process indelqual {
   publishDir "$params.outdir/alignments", mode: "copy"
-  label 'process_medium'
+  label 'process_singlecpu'
 
   input:
   set ( sampleprefix, file(sortedbamfile) ) from sortedbam
@@ -332,10 +340,13 @@ process indelqual {
   file ( bwaindex ) from ch_bwaIndex
 
   output:
-  set ( sampleprefix, file("${sampleprefix}.indelqual.bam") ) into (indelqualforindex, indelqualforcall)
+  set ( sampleprefix, file("${sampleprefix}_indelqual.bam") ) into indelqualforindex
 
   """
-  lofreq indelqual --dindel -f $fastaref -o ${sampleprefix}.indelqual.bam $sortedbamfile
+  lofreq indelqual \
+  --dindel \
+  -f $fastaref \
+  -o ${sampleprefix}_indelqual.bam $sortedbamfile
   """
 }
 
@@ -347,12 +358,17 @@ process samtoolsindex {
   set ( sampleprefix, file(indelqualfile) ) from indelqualforindex
 
   output:
-  set ( sampleprefix, file("${indelqualfile}.bai") ) into samindex
-  file("${sampleprefix}.flagstat.out") into flagstatouts
+  tuple sampleprefix, file(indelqualfile), file("${indelqualfile}.bai") into (bam_for_call_ch, bam_for_depth_ch)
+  file("${sampleprefix}_flagstat.out") into flagstatouts
 
   """
-  samtools index $indelqualfile
-  samtools flagstat $indelqualfile > ${sampleprefix}.flagstat.out
+  samtools index \
+  -@ ${task.cpus} \
+  $indelqualfile
+
+  samtools flagstat \
+  -@ ${task.cpus} \
+  $indelqualfile > ${sampleprefix}_flagstat.out
   """
 }
 
@@ -372,25 +388,30 @@ process doalignmentlog {
   """
 }
 
-forcall = indelqualforcall.join(samindex)
-forcall.into {
-  forcall1
-  forcall2
+if( 'ivar' in tools ){
+  (bam_for_call_ch, bam_for_ivar_ch) = bam_for_call_ch.into(2)
 }
+
 
 process varcall {
   publishDir "$params.outdir/analysis", mode: "copy"
   label 'process_high'
 
   input:
-  set ( sampleprefix, file(indelqualfile), file(samindexfile) ) from forcall1
+  set ( sampleprefix, file(indelqualfile), file(samindexfile) ) from bam_for_call_ch
   file( fastaref ) from ch_fasta
 
   output:
-  set ( sampleprefix, file("${sampleprefix}.lofreq.vcf") ) into (finishedcalls, finishedcallsforconsensus)
+  set ( sampleprefix, file("${sampleprefix}_lofreq.vcf") ) into (finishedcalls, finishedcallsforconsensus)
+
+  when: 'lofreq' in tools
 
   """
-  lofreq call -f $fastaref -o ${sampleprefix}.lofreq.vcf --call-indels $indelqualfile
+  lofreq call-parallel \
+  --pp-threads ${task.cpus} \
+  -f $fastaref \
+  -o ${sampleprefix}_lofreq.vcf \
+  --call-indels $indelqualfile
   """
 }
 
@@ -399,13 +420,13 @@ process dodepth {
   label 'process_low'
 
   input:
-  set ( sampleprefix, file(indelqualfile), file(samindexfile) ) from forcall2
+  set ( sampleprefix, file(indelqualfile), file(samindexfile) ) from bam_for_depth_ch
 
   output:
-  set ( sampleprefix, file("${sampleprefix}.samtools.depth") ) into samdepthout
+  set ( sampleprefix, file("${sampleprefix}_samtools.depth") ) into samdepthout
 
   """
-  samtools depth -aa $indelqualfile > ${sampleprefix}.samtools.depth
+  samtools depth -aa $indelqualfile > ${sampleprefix}_samtools.depth
   """
 }
 
@@ -418,6 +439,8 @@ process makevartable {
 
   output:
   set ( sampleprefix, file("${sampleprefix}-variants.csv") ) into nicetable
+
+  when: 'lofreq' in tools
 
   """
   python $baseDir/scripts/tablefromvcf.py $lofreqout ${sampleprefix}-variants.csv
@@ -432,6 +455,8 @@ process makefilteredcalls {
 
   output:
   set ( sampleprefix, file("${sampleprefix}.filtered.lofreq.vcf") ) into filteredvcf
+
+  when: 'lofreq' in tools
 
   """
   python $baseDir/scripts/filtervcf.py $lofreqout ${sampleprefix}.filtered.lofreq.vcf
@@ -448,6 +473,8 @@ process buildconsensus {
 
   output:
   set ( sampleprefix, file("${sampleprefix}.consensus.fasta") ) into consensusfasta
+
+  when: 'lofreq' in tools
 
   """
   bcftools view $vcfin -Oz -o {sampleprefix}.vcf.gz
@@ -471,10 +498,10 @@ https://andersen-lab.github.io/ivar/html/manualpage.html
 process ivarTrimming {
 
   label 'process_low'
-  tag: "${sampleID}-ivarTrimming"
+  tag "${sampleID}-ivarTrimming"
 
   input:
-  tuple val(sampleID), file(bam), file(bai) from whatever_channel
+  tuple val(sampleID), file(bam), file(bai) from bam_for_ivar_ch
   file(primers) from primers_ch
 
   output:
@@ -490,7 +517,7 @@ process ivarTrimming {
   -e -p "${sampleID}_primer_trimmed"
 
   samtools sort -@ ${task.cpus} -o "${sampleID}_primer_sorted.bam" "${sample}_primer_trimmed.bam"
-  samtools index "${sampleID}_primer_sorted.bam"
+  samtools index -@ ${task.cpus} "${sampleID}_primer_sorted.bam"
 
   """
 
@@ -500,13 +527,13 @@ process ivarTrimming {
 
 process ivarCalling {
   label 'process_low'
-  tag: "${sampleID}-ivar-calling"
+  tag "${sampleID}-ivar-calling"
 
   publishDir "${params.outdir}/results/ivar/${sampleID}", mode: 'copy'
 
   input:
-  tuple val(sampleID), file(trimmedbam), file(trimmedbai) from
-  file(fasta) from fasta_ch
+  tuple val(sampleID), file(trimmedbam), file(trimmedbai) from primer_trimmed_ch
+  file(fasta) from ch_fasta
   file(gff) from ch_annotation
 
   output:
@@ -529,7 +556,7 @@ process ivarCalling {
 
 process ivarConsensus {
   label 'process_low'
-  tag: "${sampleID}-ivarConsensus"
+  tag "${sampleID}-ivarConsensus"
 
   publishDir "${params.outdir}/results/ivar/${sampleID}", mode: 'copy'
 
@@ -738,7 +765,7 @@ def readInputFile(tsvFile) {
         .splitCsv(sep: '\t')
         .map { row ->
             def idSample  = row[0]
-            def file1      = returnFile(row[2])
+            def file1      = returnFile(row[1])
             def file2      = "null"
             if (hasExtension(file1, "fastq.gz") || hasExtension(file1, "fq.gz")) {
                 checkNumberOfItem(row, 3)
