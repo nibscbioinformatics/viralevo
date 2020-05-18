@@ -274,6 +274,23 @@ process BuildBWAindexes {
 }
 
 
+process buildsamtoolsindex {
+  label 'process medium'
+  tag "Samtools index of fasta reference"
+
+  input:
+  file(fasta) from ch_fasta
+
+  output:
+  file("${fasta}.fai") into ch_samtoolsIndex
+
+  script:
+  """
+  samtools faidx ${fasta}
+  """
+}
+
+
 process docutadapt {
   label 'process_medium'
   tag "trimming ${sampleprefix}"
@@ -421,11 +438,10 @@ process varcall {
 
   set ( sampleprefix, file(indelqualfile), file(samindexfile) ) from bam_for_call_ch
   file( fastaref ) from ch_fasta
+  file( fastafai ) from ch_samtoolsIndex
 
   output:
   set ( sampleprefix, file("${sampleprefix}_lofreq.vcf") ) into (finishedcalls, finishedcallsforconsensus)
-
-  when: 'lofreq' in tools
 
   when: 'lofreq' in tools
 
