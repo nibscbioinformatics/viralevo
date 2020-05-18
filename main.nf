@@ -432,11 +432,9 @@ bam_for_ivar_ch = Channel.empty()
 
 process varcall {
   publishDir "$params.outdir/analysis", mode: "copy"
-  label 'process_medium'
-  label 'process_long'
+  label 'process_high'
 
   input:
-
   set ( sampleprefix, file(indelqualfile), file(samindexfile) ) from bam_for_call_ch
   file( fastaref ) from ch_fasta
   file( fastafai ) from ch_samtoolsIndex
@@ -447,8 +445,11 @@ process varcall {
   when: 'lofreq' in tools
 
   """
-  lofreq call \
-  -f $fastaref -o ${sampleprefix}_lofreq.vcf --call-indels $indelqualfile
+  lofreq call-parallel \
+  --pp-threads ${task.cpus} \
+  -f $fastaref \
+  -o ${sampleprefix}_lofreq.vcf \
+  --call-indels $indelqualfile
   """
 }
 
