@@ -275,7 +275,7 @@ process BuildBWAindexes {
 
 
 process buildsamtoolsindex {
-  label 'process medium'
+  label 'process_medium'
   tag "Samtools index of fasta reference"
 
   input:
