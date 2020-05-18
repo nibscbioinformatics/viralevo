@@ -17,6 +17,7 @@ dependencies:
   - bioconda::bwa=0.7.17
   - bioconda::ivar=1.2.2
   - bioconda::spades=3.14.0
+  - bioconda::libgenome=1.3.1=h470a237_0
   - bioconda::mauve=2.4.0.snapshot_2015_02_13
   - bioconda::bandage=0.8.1
   - bioconda::bcftools= 1.8
@@ -29,3 +30,4 @@ dependencies:
   - r::r-knitr=1.22
   - bioconda::t_coffee=11.0.8
   - bioconda::bioconductor-ggtree=2.0.0
+  - bioconda::snpeff=4.5covid19
