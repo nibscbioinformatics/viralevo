@@ -74,7 +74,7 @@ if filemode == "flagstat":
   #Collect all the flagstat.out files and make a table from them
   filenames = []
   for filename in rawfilenames:
-    if ".flagstat.out" in filename:
+    if "_flagstat.out" in filename:
       filenames.append(filename)
   filenames = sorted(filenames)
   print(filenames)
@@ -97,7 +97,7 @@ if filemode == "flagstat":
   #Now writing out this information
   fileout.write("Sample_Name,Reads_Processed,Aligned_Reads,Secondary_Alignments,Supplementary_Alignments,Singleton_Alignments,Marked_Duplicates\n")
   for filename in filenames:
-    fileout.write(",".join([filename.replace(".flagstat.out",""), str(readsin[filename]), str(mappedinpair[filename] + mappedsingletons[filename]), str(secondary[filename]), str(supplementary[filename]), str(mappedsingletons[filename]), str(markedduplicates[filename])]))
+    fileout.write(",".join([filename.replace("_flagstat.out",""), str(readsin[filename]), str(mappedinpair[filename] + mappedsingletons[filename]), str(secondary[filename]), str(supplementary[filename]), str(mappedsingletons[filename]), str(markedduplicates[filename])]))
     fileout.write("\n")
   fileout.close()
 
