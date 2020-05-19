@@ -191,6 +191,8 @@ process get_software_versions {
     script:
     // TODO nf-core: Get all tools to print their version number here
     """
+    export LC_ALL=C.UTF-8
+    export LANG=C.UTF-8
     echo $workflow.manifest.version > v_pipeline.txt
     echo $workflow.nextflow.version > v_nextflow.txt
     fastqc --version > v_fastqc.txt
@@ -248,6 +250,8 @@ process multiqc {
     custom_config_file = params.multiqc_config ? "--config $mqc_custom_config" : ''
     // TODO nf-core: Specify which MultiQC modules to use with -m for a faster run time
     """
+    export LC_ALL=C.UTF-8
+    export LANG=C.UTF-8
     multiqc -f $rtitle $rfilename $custom_config_file .
     """
 }
