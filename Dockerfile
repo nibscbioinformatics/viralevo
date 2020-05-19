@@ -29,6 +29,15 @@ RUN tar -vxjf samtools-1.9.tar.bz2
 WORKDIR /samtools-1.9
 RUN make
 RUN make install
+WORKDIR /
+
+## also install BCFtools manually because of unresolvable dependencies
+RUN wget https://github.com/samtools/bcftools/releases/download/1.9/bcftools-1.9.tar.bz2
+RUN tar -vxjf bcftools-1.9.tar.bz2
+WORKDIR bcftools-1.9
+RUN make
+RUN make install
+WORKDIR /
 
 # Dump the details of the installed packages to a file for posterity
 RUN conda env export --name nibscbioinformatics-viralevo-1.0dev > nibscbioinformatics-viralevo-1.0dev.yml
