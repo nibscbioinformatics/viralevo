@@ -31,4 +31,3 @@ dependencies:
   - bioconda::t_coffee=11.0.8
   - bioconda::bioconductor-ggtree=2.0.0
   - bioconda::snpeff=4.5covid19
-  - bioconda::openssl=1.0
