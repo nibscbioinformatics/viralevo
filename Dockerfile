@@ -1,6 +1,8 @@
-FROM nfcore/base:1.9
+FROM conda/miniconda3
 LABEL authors="Francesco Lescai and Thomas Bleazard" \
       description="Docker image containing all software requirements for the nibscbioinformatics/viralevo pipeline"
+
+
 
 # Install the conda environment
 COPY environment.yml /
