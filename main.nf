@@ -342,7 +342,7 @@ process dospades {
   when: 'spades' in tools
 
   """
-  spades.py -o ${sampleprefix}_spades -1 $forwardfile -2 $reversefile -t ${task.cpus} -m 120 --cov-cutoff 10.0
+  spades.py -o ${sampleprefix}_spades -1 $forwardfile -2 $reversefile -t ${task.cpus} -m 120 --isolate
   """
 }
 
