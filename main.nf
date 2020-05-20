@@ -554,7 +554,7 @@ process ivarTrimming {
   -b $primers \
   -e -p "${sampleID}_primer_trimmed"
 
-  samtools sort -@ ${task.cpus} -o "${sampleID}_primer_sorted.bam" "${sample}_primer_trimmed.bam"
+  samtools sort -@ ${task.cpus} -o "${sampleID}_primer_sorted.bam" "${sampleID}_primer_trimmed.bam"
   samtools index -@ ${task.cpus} "${sampleID}_primer_sorted.bam"
 
   """
