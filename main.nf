@@ -416,7 +416,7 @@ process doalignmentlog {
   label 'process_low'
 
   input:
-  val sampleprefix, file "logdir/*" from flagstatouts.toSortedList()
+  tuple sampleprefix, file "logdir/*" from flagstatouts.toSortedList()
 
   output:
   file("alignment-summary.csv") into alignmentlogend
