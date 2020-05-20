@@ -339,6 +339,8 @@ process dospades {
   output:
   set ( sampleprefix, file("${sampleprefix}_spades") ) into spadesoutput
 
+  when: 'spades' in tools
+
   """
   spades.py -o ${sampleprefix}_spades -1 $forwardfile -2 $reversefile -t ${task.cpus} -m 120 --cov-cutoff 10.0
   """
@@ -608,13 +610,13 @@ process ivarConsensus {
   when: 'ivar' in tools
 
   output:
-  tuple val(sampleID), file("${sample}_consensus.fa"), file("${sample}_consensus.qual.txt") into ivar_consensus_ch
+  tuple val(sampleID), file("${sampleID}_consensus.fa"), file("${sampleID}_consensus.qual.txt") into ivar_consensus_ch
 
   script:
   """
   samtools mpileup -aa -A -d 0 -Q 0 \
-  ${sample}_primer_sorted.bam \
-  | ivar consensus -t 0.01 -p ${sample}_consensus
+  ${sampleID}_primer_sorted.bam \
+  | ivar consensus -t 0.01 -p ${sampleID}_consensus
   """
 
 }
@@ -862,7 +864,8 @@ def defaultToolList() {
     return [
         'lofreq',
         'ivar',
-        'snpeff'
+        'snpeff',
+        'spades'
     ]
 }
 
