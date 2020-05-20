@@ -516,7 +516,7 @@ process buildconsensus {
   file ( fastaref ) from ch_fasta
 
   output:
-  set ( sampleprefix, file("${sampleprefix}.consensus.fasta") ) into consensusfasta
+  file("${sampleprefix}.consensus.fasta") into consensusfasta
 
   when: 'lofreq' in tools
 
@@ -528,6 +528,27 @@ process buildconsensus {
 }
 
 //END OF NIBSC CUTADAPT-BWA-LOFREQ PIPELINE
+
+
+process mauvemsa {
+  label 'process_high'
+
+  input:
+  file("sampleconsensus/*") from consensusfasta.toSortedList()
+
+  output:
+  tuple file("covid_consensus_alignment.xmfa"), file("covid_consensus_alignment.tree"), file("covid_consensus_alignment.backbone"), file("covid_consensus_alignment.mfa"), file("covid_consensus_all.fa") into mauveout
+
+  """
+  cat sampleconsensus/*.consensus.fasta > covid_consensus_all.fa
+  mauveAligner \
+  --output=covid_consensus_alignment.xmfa \
+  --output-guide-tree=covid_consensus_alignment.tree \
+  --backbone-output=covid_consensus_alignment.backbone \
+  --output-alignment=covid_consensus_alignment.mfa \
+  covid_consensus_all.fa 
+  """
+}
 
 
 
