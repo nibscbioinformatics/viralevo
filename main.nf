@@ -314,7 +314,7 @@ process docutadapt {
 }
 
 process dotrimlog {
-  publishDir "$params.outdir/analysis", mode: "copy"
+  publishDir "$params.outdir/stats/trimming/", mode: "copy"
   label 'process_low'
 
   input:
@@ -330,7 +330,7 @@ process dotrimlog {
 }
 
 process dospades {
-  publishDir "$params.outdir/alignments", mode: "copy"
+  publishDir "$params.outdir/alignments/${sampleprefix}", mode: "copy"
   label 'process_high'
 
   input:
@@ -370,7 +370,7 @@ process doalignment {
 }
 
 process indelqual {
-  publishDir "$params.outdir/alignments", mode: "copy"
+  publishDir "$params.outdir/alignments/${sampleprefix}", mode: "copy"
   label 'process_singlecpu'
 
   input:
@@ -390,7 +390,7 @@ process indelqual {
 }
 
 process samtoolsindex {
-  publishDir "$params.outdir/alignments", mode: "copy"
+  publishDir "$params.outdir/alignments/${sampleprefix}", mode: "copy"
   label 'process_medium'
 
   input:
@@ -412,7 +412,7 @@ process samtoolsindex {
 }
 
 process doalignmentlog {
-  publishDir "$params.outdir/analysis", mode: "copy"
+  publishDir "$params.outdir/stats/${sampleprefix}", mode: "copy"
   label 'process_low'
 
   input:
@@ -437,7 +437,7 @@ bam_for_ivar_ch = Channel.empty()
 
 
 process varcall {
-  publishDir "$params.outdir/analysis", mode: "copy"
+  publishDir "$params.outdir/calling/lofreq/${sampleprefix}", mode: "copy"
   label 'process_high'
 
   input:
@@ -460,7 +460,7 @@ process varcall {
 }
 
 process dodepth {
-  publishDir "$params.outdir/alignments", mode: "copy"
+  publishDir "$params.outdir/alignments/${sampleprefix}", mode: "copy"
   label 'process_low'
 
   input:
@@ -475,7 +475,7 @@ process dodepth {
 }
 
 process makevartable {
-  publishDir "$params.outdir/analysis", mode: "copy"
+  publishDir "$params.outdir/calling/lofreq/${sampleprefix}", mode: "copy"
   label 'process_low'
 
   input:
@@ -508,7 +508,7 @@ process makefilteredcalls {
 }
 
 process buildconsensus {
-  publishDir "$params.outdir/analysis", mode: "copy"
+  publishDir "$params.outdir/calling/lofreq/${sampleprefix}", mode: "copy"
   label 'process_low'
 
   input:
@@ -573,7 +573,7 @@ process ivarCalling {
   label 'process_low'
   tag "${sampleID}-ivar-calling"
 
-  publishDir "${params.outdir}/results/ivar/${sampleID}", mode: 'copy'
+  publishDir "${params.outdir}/calling/ivar/${sampleID}", mode: 'copy'
 
   input:
   tuple val(sampleID), file(trimmedbam), file(trimmedbai) from primer_trimmed_ch
@@ -602,7 +602,7 @@ process ivarConsensus {
   label 'process_low'
   tag "${sampleID}-ivarConsensus"
 
-  publishDir "${params.outdir}/results/ivar/${sampleID}", mode: 'copy'
+  publishDir "${params.outdir}/calling/ivar/${sampleID}", mode: 'copy'
 
   input:
   tuple val(sampleID), file(bam), file(bai) from ivar_prebam_ch
