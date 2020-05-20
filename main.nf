@@ -398,7 +398,7 @@ process samtoolsindex {
 
   output:
   tuple sampleprefix, file(indelqualfile), file("${indelqualfile}.bai") into (bam_for_call_ch, bam_for_depth_ch)
-  file("${sampleprefix}_flagstat.out") into flagstatouts
+  tuple sampleprefix, file("${sampleprefix}_flagstat.out") into flagstatouts
 
   """
   samtools index \
@@ -416,7 +416,7 @@ process doalignmentlog {
   label 'process_low'
 
   input:
-  file "logdir/*" from flagstatouts.toSortedList()
+  val sampleprefix, file "logdir/*" from flagstatouts.toSortedList()
 
   output:
   file("alignment-summary.csv") into alignmentlogend
