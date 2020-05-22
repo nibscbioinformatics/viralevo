@@ -4,11 +4,11 @@ import sys
 import os
 
 varcallsdir = sys.argv[1]
-rawfilenames = os.listdir(varcallsdir)
+infiles = os.listdir(varcallsdir)
 fileout = open(sys.argv[2], "w")
 
 basicpassreads = 100
-basicpassproportion = 0.01
+basicpassproportion = 0.05
 
 #VCF files have lines like:
 ###CHROM  POS     ID      REF     ALT     QUAL    FILTER  INFO
@@ -44,7 +44,7 @@ for infile in infiles:
             refreads = int(infofield[3].split("=")[1].split(",")[0]) + int(infofield[3].split("=")[1].split(",")[1])
             altreads = int(infofield[3].split("=")[1].split(",")[2]) + int(infofield[3].split("=")[1].split(",")[3])
             basicpass = altreads >= basicpassreads and float(proportion) >= basicpassproportion
-            fileout.write(",".join(samplename,caller,chromosome,position,ref,alt,str(refreads),str(altreads),proportion,str(basicpass),"\n"))
+            fileout.write(",".join([samplename,caller,chromosome,position,ref,alt,str(refreads),str(altreads),proportion,str(basicpass),"\n"]))
         filein.close()
     if "_variants.tsv" in infile:
         filein = open(varcallsdir+"/"+infile)
@@ -57,11 +57,11 @@ for infile in infiles:
             position = collect[1]
             ref = collect[2]
             alt = collect[3]
-            refreads = collect[4]
-            altreads = collect[7]
+            refreads = int(collect[4])
+            altreads = int(collect[7])
             proportion = float(altreads) / (float(altreads)+float(refreads))
-            basicpass = bool(collect[13])
-            fileout.write(",".join(samplename,caller,chromosome,position,ref,alt,str(refreads),str(altreads),str(proportion),str(basicpass),"\n"))
+            basicpass = bool(collect[13]) and (altreads >= basicpassreads and float(proportion) >= basicpassproportion)
+            fileout.write(",".join([samplename,caller,chromosome,position,ref,alt,str(refreads),str(altreads),str(proportion),str(basicpass),"\n"]))
         filein.close()
 
 fileout.close()
