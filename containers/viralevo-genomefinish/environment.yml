@@ -10,3 +10,4 @@ dependencies:
   - bioconda::soapdenovo2-gapcloser=1.12
   - bioconda::gmcloser= 1.6.2
   - bioconda::quast=5.0.2
+  - bioconda::mummer=3.23
