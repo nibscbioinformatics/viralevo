@@ -635,7 +635,7 @@ if ('lofreq' in tools){
 mixedvars_ch = mixedvars_ch.map {it[1]}
 
 process makevartable {
-  publishDir "$params.outdir/calling/${sampleprefix}", mode: "copy"
+  publishDir "$params.outdir/calling/", mode: "copy"
   label 'process_low'
 
   input:
