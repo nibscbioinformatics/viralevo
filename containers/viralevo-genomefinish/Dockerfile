@@ -3,7 +3,7 @@ LABEL authors="Francesco Lescai and Thomas Bleazard" \
       description="Docker image containing all software requirements for the nibscbioinformatics/viralevo pipeline"
 
 # Install procps so that Nextflow can poll CPU usage
-RUN apt-get update && apt-get install -y procps && apt-get clean -y
+RUN apt-get update && apt-get install -y procps wget && apt-get clean -y
 
 # Install the conda environment
 COPY environment.yml /
