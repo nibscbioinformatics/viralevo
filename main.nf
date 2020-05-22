@@ -627,12 +627,12 @@ process ivarConsensus {
 
 mixedvars_ch = Channel.empty()
 if( 'ivar' in tools){
-  mixedvars_ch = mix(mixedvars_ch, ivar_vars_ch)
+  mixedvars_ch = mixedvars_ch.mix(ivar_vars_ch)
 }
 if ('lofreq' in tools){
-  mixedvars_ch = mix(mixedvars_ch, finishedcalls)
+  mixedvars_ch = mixedvars_ch.mix(finishedcalls)
 }
-mixedvars_ch = Channel.from(mixedvars_ch).map {it[1]}
+mixedvars_ch = mixedvars_ch.map {it[1]}
 
 process makevartable {
   publishDir "$params.outdir/calling/${sampleprefix}", mode: "copy"
