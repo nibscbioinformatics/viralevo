@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y procps wget && apt-get clean -y
 ## Fix locales problem
 RUN apt-get install -y locales
 RUN locale-gen en_GB.UTF-8
-dpkg-reconfigure locales
+RUN dpkg-reconfigure locales
 
 # Install the conda environment
 COPY environment.yml /
