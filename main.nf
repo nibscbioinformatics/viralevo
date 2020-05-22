@@ -474,23 +474,6 @@ process dodepth {
   """
 }
 
-process makevartable {
-  publishDir "$params.outdir/calling/lofreq/${sampleprefix}", mode: "copy"
-  label 'process_low'
-
-  input:
-  set ( sampleprefix, file(lofreqout) ) from finishedcalls
-
-  output:
-  set ( sampleprefix, file("${sampleprefix}-variants.csv") ) into nicetable
-
-  when: 'lofreq' in tools
-
-  """
-  python $baseDir/scripts/tablefromvcf.py $lofreqout ${sampleprefix}-variants.csv
-  """
-}
-
 process makefilteredcalls {
   label 'process_low'
 
@@ -546,7 +529,7 @@ process mauvemsa {
   --output-guide-tree=covid_consensus_alignment.tree \
   --backbone-output=covid_consensus_alignment.backbone \
   --output-alignment=covid_consensus_alignment.mfa \
-  covid_consensus_all.fa 
+  covid_consensus_all.fa
   """
 }
 
@@ -602,7 +585,7 @@ process ivarCalling {
   file(gff) from ch_annotation
 
   output:
-  tuple val(sampleID), file("${sampleID}_variants.tsv")
+  tuple val(sampleID), file("${sampleID}_variants.tsv") into ivar_vars_ch
 
   when: 'ivar' in tools
 
@@ -641,6 +624,31 @@ process ivarConsensus {
   """
 
 }
+
+mixedvars_ch = Channel.empty()
+if( 'ivar' in tools){
+  mixedvars_ch = mixedvars_ch.mix(ivar_vars_ch)
+}
+if ('lofreq' in tools){
+  mixedvars_ch = mixedvars_ch.mix(finishedcalls)
+}
+mixedvars_ch = mixedvars_ch.map {it[1]}
+
+process makevartable {
+  publishDir "$params.outdir/calling/", mode: "copy"
+  label 'process_low'
+
+  input:
+  file "varcalls/*" from mixedvars_ch.toSortedList()
+
+  output:
+  file("varianttable.csv") into nicetable
+
+  """
+  python $baseDir/scripts/tablefromvcf.py varcalls varianttable.csv
+  """
+}
+
 
 
 
