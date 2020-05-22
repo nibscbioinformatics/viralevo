@@ -1,9 +1,11 @@
 #This is a script to read a LoFreq VCF file and extract a CSV table with Sample,Chromosome,Position,Ref,Alt,Ref_Reads,Alt_Reads,Proportion,Basic_Pass
 
 import sys
+import os
 
-infiles = sys.argv[1:-1]
-fileout = open(sys.argv[-1], "w")
+varcallsdir = sys.argv[1]
+rawfilenames = os.listdir(varcallsdir)
+fileout = open(sys.argv[2], "w")
 
 basicpassreads = 100
 basicpassproportion = 0.01
@@ -26,7 +28,7 @@ fileout.write("Sample,Caller,Region,Position,Ref,Alt,Ref_Reads,Alt_Reads,Proport
 
 for infile in infiles:
     if "_lofreq.vcf" in infile:
-        filein = open(infile)
+        filein = open(varcallsdir+"/"+infile)
         caller = "lofreq"
         samplename = infile.replace("_lofreq.vcf","")
         for line in filein:
@@ -45,7 +47,7 @@ for infile in infiles:
             fileout.write(",".join(samplename,caller,chromosome,position,ref,alt,str(refreads),str(altreads),proportion,str(basicpass),"\n"))
         filein.close()
     if "_variants.tsv" in infile:
-        filein = open(infile)
+        filein = open(varcallsdir+"/"+infile)
         samplename = infile.replace("_variants.tsv","")
         caller = "ivar"
         header = filein.readline()
