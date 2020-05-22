@@ -5,6 +5,11 @@ LABEL authors="Francesco Lescai and Thomas Bleazard" \
 # Install procps so that Nextflow can poll CPU usage
 RUN apt-get update && apt-get install -y procps wget && apt-get clean -y
 
+## Fix locales problem
+RUN apt-get install -y locales
+RUN locale-gen --purge "en_GB.UTF-8"
+RUN dpkg-reconfigure --frontend noninteractive locales
+
 # Install the conda environment
 COPY environment.yml /
 RUN conda env create -f /environment.yml && conda clean -a
