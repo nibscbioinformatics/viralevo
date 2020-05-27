@@ -64,15 +64,14 @@ if (params.virus_reference && params.genome && !params.virus_reference.containsK
     exit 1, "The provided genome '${params.genome}' is not available in the iGenomes file. Currently the available genomes are ${params.genomes.keySet().join(", ")}"
 }
 
+//Creating value channels for reference files
 params.anno = params.genome ? params.virus_reference[params.genome].gff ?: null : null
 if (params.anno) { ch_annotation = Channel.value(file(params.anno, checkIfExists: true)) }
 
 params.fasta = params.genome ? params.virus_reference[params.genome].fasta ?: null : null
 if (params.fasta) { ch_fasta = Channel.value(file(params.fasta, checkIfExists: true)) }
 
-
 primers_ch = params.primers ? Channel.value(file(params.primers)) : "null"
-
 ch_adapter = params.adapter ? Channel.value(file(params.adapter)) : "null"
 
 // ### TOOLS Configuration
@@ -106,7 +105,6 @@ ch_output_docs = file("$baseDir/docs/output.md", checkIfExists: true)
  * Create a channel for input read files
  * ############################################
  */
-
 inputSample = Channel.empty()
 if (params.input) {
   tsvFile = file(params.input)
@@ -118,9 +116,7 @@ else {
 }
 
 // splitting the reads into fastq and processing
-
 (ch_read_files_fastqc, inputSample) = inputSample.into(2)
-
 
 // Header log info
 log.info nfcoreHeader()
@@ -202,9 +198,7 @@ process get_software_versions {
 }
 
 
-/*
- * STEP 1 - FastQC
- */
+//FastQC from nf-core template
 process fastqc {
     tag "$name"
     label 'process_medium'
@@ -225,9 +219,7 @@ process fastqc {
     """
 }
 
-/*
- * STEP 2 - MultiQC
- */
+//MultiQC from nf-core template (could add collection of other outputs)
 process multiqc {
     publishDir "${params.outdir}/MultiQC", mode: 'copy'
 
@@ -256,10 +248,8 @@ process multiqc {
     """
 }
 
-
-
 //START OF NIBSC CUTADAPT-BWA-LOFREQ PIPELINE
-
+//creating a value channel of BWA index files for the reference
 process BuildBWAindexes {
 
     label 'process_medium'
@@ -277,7 +267,7 @@ process BuildBWAindexes {
     """
 }
 
-
+//Creating an fai index value channel from the reference
 process buildsamtoolsindex {
   label 'process_medium'
   tag "Samtools index of fasta reference"
@@ -294,7 +284,7 @@ process buildsamtoolsindex {
   """
 }
 
-
+//Trimming of adapters and low-quality bases - note hardcoded parameters in command
 process docutadapt {
   label 'process_medium'
   tag "trimming ${sampleprefix}"
@@ -313,6 +303,7 @@ process docutadapt {
   """
 }
 
+//Produce output CSV table of trimming stats for reading in R
 process dotrimlog {
   publishDir "$params.outdir/stats/trimming/", mode: "copy"
   label 'process_low'
@@ -329,6 +320,7 @@ process dotrimlog {
   """
 }
 
+//Use spades for de novo assembly with isolate flag
 process dospades {
   publishDir "$params.outdir/alignments/${sampleprefix}", mode: "copy"
   label 'process_high'
@@ -346,6 +338,7 @@ process dospades {
   """
 }
 
+//BWA alignment of samples, and sorting to BAM format
 process doalignment {
   label 'process_high'
 
@@ -369,6 +362,7 @@ process doalignment {
   """
 }
 
+//Addition of indel quality scores for LoFreq workflow
 process indelqual {
   publishDir "$params.outdir/alignments/${sampleprefix}", mode: "copy"
   label 'process_singlecpu'
@@ -389,6 +383,7 @@ process indelqual {
   """
 }
 
+//Build BAI indices for alignments, and also collect alignment statistics
 process samtoolsindex {
   publishDir "$params.outdir/alignments/${sampleprefix}", mode: "copy"
   label 'process_medium'
@@ -411,6 +406,7 @@ process samtoolsindex {
   """
 }
 
+//Process alignment stats into CSV summary for R
 process doalignmentlog {
   publishDir "$params.outdir/stats", mode: "copy"
   label 'process_low'
@@ -427,15 +423,14 @@ process doalignmentlog {
   """
 }
 
-
+//Creating input channel of BAM files for ivar variant calling
 if( 'ivar' in tools ){
   (bam_for_call_ch, bam_for_ivar_ch) = bam_for_call_ch.into(2)
 } else {
 bam_for_ivar_ch = Channel.empty()
 }
 
-
-
+//Calling variants with LoFreq if included in the tools list
 process varcall {
   publishDir "$params.outdir/calling/lofreq/${sampleprefix}", mode: "copy"
   label 'process_high'
@@ -459,6 +454,7 @@ process varcall {
   """
 }
 
+//Producing tables with depth at each position - not suitable for large genomes
 process dodepth {
   publishDir "$params.outdir/alignments/${sampleprefix}", mode: "copy"
   label 'process_low'
@@ -474,6 +470,7 @@ process dodepth {
   """
 }
 
+//Producing a VCF file with only calls over 50% for the consensus creation
 process makefilteredcalls {
   label 'process_low'
 
@@ -490,6 +487,7 @@ process makefilteredcalls {
   """
 }
 
+//Creating a consensus fasta sequence using reference and the >50% variant calls
 process buildconsensus {
   publishDir "$params.outdir/calling/lofreq/${sampleprefix}", mode: "copy"
   label 'process_low'
@@ -509,18 +507,20 @@ process buildconsensus {
   cat $fastaref | bcftools consensus {sampleprefix}.vcf.gz > ${sampleprefix}.consensus.fasta
   """
 }
-
 //END OF NIBSC CUTADAPT-BWA-LOFREQ PIPELINE
 
-
+//Perform multiple sequence alignment of the consensuses (ie from lofreq)
 process mauvemsa {
   label 'process_high'
+  publishDir "$params.outdir/alignments"
 
   input:
   file("sampleconsensus/*") from consensusfasta.toSortedList()
 
   output:
   tuple file("covid_consensus_alignment.xmfa"), file("covid_consensus_alignment.tree"), file("covid_consensus_alignment.backbone"), file("covid_consensus_alignment.mfa"), file("covid_consensus_all.fa") into mauveout
+
+  when: 'lofreq' in tools
 
   """
   cat sampleconsensus/*.consensus.fasta > covid_consensus_all.fa
@@ -625,6 +625,7 @@ process ivarConsensus {
 
 }
 
+//Merge the ivar and lofreq output variant calls files into one channel
 mixedvars_ch = Channel.empty()
 if( 'ivar' in tools){
   mixedvars_ch = mixedvars_ch.mix(ivar_vars_ch)
@@ -634,6 +635,7 @@ if ('lofreq' in tools){
 }
 mixedvars_ch = mixedvars_ch.map {it[1]}
 
+//Make a table for R display of the combined variant calls with filter pass column
 process makevartable {
   publishDir "$params.outdir/calling/", mode: "copy"
   label 'process_low'
@@ -653,7 +655,7 @@ process makevartable {
 
 
 /*
- * STEP 3 - Output Description HTML
+ * STEP 3 - Output Description HTML (from template)
  */
 process output_documentation {
     publishDir "${params.outdir}/pipeline_info", mode: 'copy'
