@@ -516,15 +516,16 @@ process mauvemsa {
 
   input:
   file("sampleconsensus/*") from consensusfasta.toSortedList()
+  file ( fastaref ) from ch_fasta
 
   output:
   tuple file("covid_consensus_alignment.xmfa"), file("covid_consensus_alignment.tree"), file("covid_consensus_alignment.backbone"), file("covid_consensus_alignment.mfa"), file("covid_consensus_all.fa") into mauveout
 
   when:
-  'lofreq' in tools && 'mauve' in tools
+  'lofreq' in tools
 
   """
-  cat sampleconsensus/*.consensus.fasta > covid_consensus_all.fa
+  cat $fastaref sampleconsensus/*.consensus.fasta > covid_consensus_all.fa
   mauveAligner \
   --output=covid_consensus_alignment.xmfa \
   --output-guide-tree=covid_consensus_alignment.tree \
