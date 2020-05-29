@@ -21,7 +21,7 @@ my ($ivar, $vcf);
 
 #Get command-line parameters with GetOptions, and check that all needed are there, otherwise die with usage message
 die $usage unless
-	&GetOptions(	'ivar:s' => \$vcf,
+	&GetOptions(	'ivar:s' => \$ivar,
 					'vcf:s' =>\$vcf
 				)
 	&& $ivar;
