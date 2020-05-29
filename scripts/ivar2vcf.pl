@@ -48,7 +48,7 @@ open(my $ivarHandler, $ivar) or die("can't open original iVar file\n");
 open(my $vcfHandler, ">$vcf") or die("can't write on the output vcf file\n");
 
 my $headerLines = <<HEAD;
-##fileformat=VCFv4.0
+##fileformat=VCFv4.2
 ##FILTER=<ID=PASS,Description="Passed iVar Filters">
 ##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
 ##FORMAT=<ID=PVAL,Number=1,Type=Float,Description="PValue of the variant call">
@@ -62,6 +62,8 @@ my $headerLines = <<HEAD;
 #CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t$ivar
 HEAD
 
+## print the header in file
+print $vcfHandler $headerLines."\n";
 
 my $isInfo = 0;
 my $fileLine=0;
