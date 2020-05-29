@@ -603,7 +603,7 @@ process ivarCalling {
   -r $fasta \
   -g $gff
 
-  perl $baseDir/ivar2vcf.pl --ivar ${sampleID}_variants.tsv --vcf ${sampleID}_variants.vcf
+  perl $baseDir/scripts/ivar2vcf.pl --ivar ${sampleID}_variants.tsv --vcf ${sampleID}_variants.vcf
   """
 }
 
