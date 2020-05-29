@@ -107,7 +107,7 @@ while(<$ivarHandler>){
   }
   $geno = "$ref/$alt";
 
-	my $identifier = $data[0]."_".$data[1]."_".$ref."_".$alt";
+	my $identifier = $data[0]."_".$data[1]."_".$ref."_".$alt;
 
 
   my $variantLine = "$data[0]\t$data[1]\t.\t$ref\t$alt\t.\t$data[13]\tIVAR_DP=$data[11];IVAR_GFF=$data[14];IVAR_REFAA=$data[16];IVAR_ALTAA=$data[18];";
