@@ -466,7 +466,7 @@ process dodepth {
   set ( sampleprefix, file("${sampleprefix}_samtools.depth") ) into samdepthout
 
   """
-  samtools depth -aa $indelqualfile > ${sampleprefix}_samtools.depth
+  samtools depth -aa -m 0 $indelqualfile > ${sampleprefix}_samtools.depth
   """
 }
 

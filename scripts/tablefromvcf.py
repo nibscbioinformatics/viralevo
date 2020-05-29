@@ -61,7 +61,7 @@ for infile in infiles:
             altreads = int(collect[7])
             proportion = float(altreads) / (float(altreads)+float(refreads))
             basicpass = bool(collect[13]) and (altreads >= basicpassreads and float(proportion) >= basicpassproportion)
-            fileout.write(",".join([samplename,caller,chromosome,position,ref,alt,str(refreads),str(altreads),str(proportion),str(basicpass),"\n"]))
+            fileout.write((",".join([samplename,caller,chromosome,position,ref,alt,str(refreads),str(altreads),str(proportion),str(basicpass)])+"\n"))
         filein.close()
 
 fileout.close()
