@@ -3,7 +3,6 @@ use warnings;
 use Getopt::Long;
 use Cwd;
 use IO::File;
-use Bio::EnsEMBL
 
 
 ##########################################
