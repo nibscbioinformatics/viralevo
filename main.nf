@@ -662,7 +662,7 @@ process makevartable {
 
 
 process annotate {
-  publishDir "$params.outdir/calling/$caller/", mode: "copy"
+  publishDir "$params.outdir/calling/$caller/$sampleID", mode: "copy"
   tag "snpEff $caller $sampleID"
   label 'process_low'
 
@@ -670,13 +670,13 @@ process annotate {
   tuple sampleID, caller, file(vcf) from vcf_to_annotate_ch
 
   output:
-  tuple val(sampleID), val(caller), file("${vcf.getBaseName()}") into annotated_vcf_ch
+  tuple val(sampleID), val(caller), file("${vcf.getBaseName()}_anno.vcf") into annotated_vcf_ch
 
   when: 'snpeff' in tools | 'all' in tools
 
   script:
   """
-  snpEff -ud 1 NC_045512.2 ${vcf} >${vcf.getBaseName()}
+  snpEff -ud 1 NC_045512.2 ${vcf} >"${vcf.getBaseName()}_anno.vcf"
   """
 
 }
