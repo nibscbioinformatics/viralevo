@@ -479,6 +479,7 @@ process makefilteredcalls {
 
   output:
   set ( sampleprefix, file("${sampleprefix}.filtered.lofreq.vcf") ) into filteredvcf
+  tuple val(sampleprefix), val("lofreq"), file("${sampleprefix}.filtered.lofreq.vcf") into lofreq_vcf_ch
 
   when: 'lofreq' in tools
 
@@ -588,6 +589,7 @@ process ivarCalling {
 
   output:
   tuple val(sampleID), file("${sampleID}_variants.tsv") into ivar_vars_ch
+  tuple val(sampleID), val ("ivar"), file("${sampleID}_variants.vcf") into ivar_vcf_ch
 
   when: 'ivar' in tools
 
@@ -600,8 +602,13 @@ process ivarCalling {
   | ivar variants -p "${sampleID}_variants" \
   -r $fasta \
   -g $gff
+
+  perl $baseDir/ivar2vcf.pl --ivar ${sampleID}_variants.tsv --vcf ${sampleID}_variants.vcf
   """
 }
+
+// create a single channel with both variant caller results - if both are run
+vcf_to_annotate_ch = lofreq_vcf_ch.mix(ivar_vcf_ch)
 
 
 process ivarConsensus {
@@ -651,6 +658,27 @@ process makevartable {
   """
   python $baseDir/scripts/tablefromvcf.py varcalls varianttable.csv
   """
+}
+
+
+process annotate {
+  publishDir "$params.outdir/calling/$caller/", mode: "copy"
+  tag "snpEff $caller $sampleID"
+  label 'process_low'
+
+  input:
+  tuple sampleID, caller, file(vcf) from vcf_to_annotate_ch
+
+  output:
+  tuple val(sampleID), val(caller), file("${vcf.getBaseName()}") into annotated_vcf_ch
+
+  when: 'snpeff' in tools | 'all' in tools
+
+  script:
+  """
+  snpEff -ud 1 NC_045512.2 ${vcf} >${vcf.getBaseName()}
+  """
+
 }
 
 
@@ -899,7 +927,8 @@ def defaultToolList() {
         'ivar',
         'snpeff',
         'spades',
-        'mauve'
+        'mauve',
+        'all'
     ]
 }
 
