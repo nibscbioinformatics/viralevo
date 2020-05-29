@@ -66,6 +66,8 @@ HEAD
 my $isInfo = 0;
 my $fileLine=0;
 
+my $previousLine = "";
+
 while(<$ivarHandler>){
 
 	chomp();
@@ -107,7 +109,14 @@ while(<$ivarHandler>){
   my $variantLine = "$data[0]\t$data[1]\t.\t$ref\t$alt\t.\t$data[13]\tIVAR_DP=$data[11];IVAR_GFF=$data[14];IVAR_REFAA=$data[16];IVAR_ALTAA=$data[18];";
   $variantLine .= "\tGT:PVAL:AQ:DP:AF\t$geno:$data[12]:$data[6],$data[9]:$data[4],$data[7]:$data[10]";
 
-  print $vcfHandler $variantLine."\n";
+  if ($previousLine ne $variantLine){
+    print $vcfHandler $variantLine."\n";
+    $previousLine = $variantLine;
+  }
+  else {
+    next;
+  }
+
 
 }
 
