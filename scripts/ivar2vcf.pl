@@ -28,7 +28,7 @@ die $usage unless
 
 $vcf ||= $ivar.".vcf";
 
-my $vcf_format = "GT:PVAL:AQ:DP:AF"
+my $vcf_format = "GT:PVAL:AQ:DP:AF";
 
 
 #############################
