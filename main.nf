@@ -9,8 +9,11 @@
 ----------------------------------------------------------------------------------------
 */
 
+// ######### DEFAULT PARAMS SETTINGS ##########################
 params.genome = 'SARS-CoV-2'
 params.adapter = 'https://raw.githubusercontent.com/nibscbioinformatics/testdata/master/covid19/nexteraPE.fasta'
+params.ivar_af_threshold = 0.001
+params.ivar_dp_threshold = 10
 
 def helpMessage() {
     // TODO nf-core: Add to this help message with new command line parameters
@@ -32,8 +35,13 @@ def helpMessage() {
       --genome [str]                  Name of iGenomes reference
       --single_end [bool]             Specifies that the input is single-end reads
 
-    References                        If not specified in the configuration file or you wish to overwrite any of the references
+    References:                       If not specified in the configuration file or you wish to overwrite any of the references
       --adapter [file]                Path to fasta for adapter sequences to be trimmed
+
+    Calling options (with default):
+      --ivar_af_threshold [float]     Allele Frequency threshold for calling (default 0.001)
+                                      This applies to both the ivar calling process and also to the ivar consensus
+      --ivar_dp_threshold [int]       Minimum depth to call variants or to call consensus (default 10)
 
     Other options:
       --outdir [file]                 The output directory where the results will be saved
@@ -600,6 +608,8 @@ process ivarCalling {
   --reference $fasta \
   $trimmedbam \
   | ivar variants -p "${sampleID}_variants" \
+  -t ${params.ivar_af_threshold} \
+  -m ${params.ivar_dp_threshold} \
   -r $fasta \
   -g $gff
 
@@ -629,7 +639,10 @@ process ivarConsensus {
   """
   samtools mpileup -aa -A -d 0 -Q 0 \
   ${sampleID}_primer_sorted.bam \
-  | ivar consensus -t 0.01 -p ${sampleID}_consensus
+  | ivar consensus \
+  -t ${params.ivar_af_threshold} \
+  -m ${params.ivar_dp_threshold} \
+  -p ${sampleID}_consensus
   """
 
 }
