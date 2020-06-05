@@ -10,10 +10,10 @@ dependencies:
   - conda-forge::pandoc=2.9.2.1
   - r::r=3.6.0
   - r::r-tidyverse=1.2.1
-  - r::r-pander=0.6.3
   - r::r-rmarkdown=1.12
   - r::r-knitr=1.22
   - r::r-tidyverse=1.2.1
+  - conda-forge::r-dt=0.12
   - bioconda::bioconductor-ggtree=2.0.0
   - bioconda::bioconductor-genomicfeatures=1.36.0
   - bioconda::bioconductor-variantannotation=1.30.0
