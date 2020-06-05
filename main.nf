@@ -79,6 +79,9 @@ if (params.anno) { ch_annotation = Channel.value(file(params.anno, checkIfExists
 params.fasta = params.genome ? params.virus_reference[params.genome].fasta ?: null : null
 if (params.fasta) { ch_fasta = Channel.value(file(params.fasta, checkIfExists: true)) }
 
+params.phyref = params.genome ? params.virus_reference[params.genome].pyloref ?: null : null
+if (params.phyref) { ch_phyloref = Channel.value(file(params.phyref, checkIfExists: true)) }
+
 primers_ch = params.primers ? Channel.value(file(params.primers)) : "null"
 ch_adapter = params.adapter ? Channel.value(file(params.adapter)) : "null"
 
@@ -328,23 +331,6 @@ process dotrimlog {
   """
 }
 
-//Use spades for de novo assembly with isolate flag
-process dospades {
-  publishDir "$params.outdir/alignments/${sampleprefix}", mode: "copy"
-  label 'process_high'
-
-  input:
-  set ( sampleprefix, file(forwardfile), file(reversefile) ) from trimmingoutput2
-
-  output:
-  set ( sampleprefix, file("${sampleprefix}_spades") ) into spadesoutput
-
-  when: 'spades' in tools
-
-  """
-  spades.py -o ${sampleprefix}_spades -1 $forwardfile -2 $reversefile -t ${task.cpus} -m 120 --isolate
-  """
-}
 
 //BWA alignment of samples, and sorting to BAM format
 process doalignment {
@@ -507,6 +493,7 @@ process buildconsensus {
 
   output:
   file("${sampleprefix}.consensus.fasta") into consensusfasta
+  tuple val(sampleprefix), val("lofreq"), file("${sampleprefix}_lofreq_consensus.fa") into lofreq_consensus_ch
 
   when: 'lofreq' in tools
 
@@ -514,37 +501,14 @@ process buildconsensus {
   bcftools view $vcfin -Oz -o {sampleprefix}.vcf.gz
   bcftools index {sampleprefix}.vcf.gz
   cat $fastaref | bcftools consensus {sampleprefix}.vcf.gz > ${sampleprefix}.consensus.fasta
+
+  perl $baseDir/scripts/change_fasta_name.pl \
+  -fasta ${sampleprefix}.consensus.fasta \
+  -name ${sampleprefix}L \
+  -out ${sampleprefix}_lofreq_consensus.fa
   """
 }
 //END OF NIBSC CUTADAPT-BWA-LOFREQ PIPELINE
-
-//Perform multiple sequence alignment of the consensuses (ie from lofreq)
-process mauvemsa {
-  label 'process_high'
-  publishDir "$params.outdir/alignments"
-
-  input:
-  file("sampleconsensus/*") from consensusfasta.toSortedList()
-  file ( fastaref ) from ch_fasta
-
-  output:
-  tuple file("covid_consensus_alignment.xmfa"), file("covid_consensus_alignment.tree"), file("covid_consensus_alignment.backbone"), file("covid_consensus_alignment.mfa"), file("covid_consensus_all.fa") into mauveout
-
-  when:
-  'lofreq' in tools
-
-  """
-  cat $fastaref sampleconsensus/*.consensus.fasta > covid_consensus_all.fa
-  mauveAligner \
-  --output=covid_consensus_alignment.xmfa \
-  --output-guide-tree=covid_consensus_alignment.tree \
-  --backbone-output=covid_consensus_alignment.backbone \
-  --output-alignment=covid_consensus_alignment.mfa \
-  covid_consensus_all.fa
-  """
-}
-
-
 
 
 /*
@@ -633,7 +597,9 @@ process ivarConsensus {
   when: 'ivar' in tools
 
   output:
-  tuple val(sampleID), file("${sampleID}_consensus.fa"), file("${sampleID}_consensus.qual.txt") into ivar_consensus_ch
+  tuple val(sampleID), val("ivar"), file("${sampleID}_ivar_consensus.fa") into ivar_consensus_ch
+  file("${sampleID}_consensus.qual.txt") into ivar_consensus_qual_ch
+  file("${sampleID}_consensus.fa")
 
   script:
   """
@@ -643,6 +609,11 @@ process ivarConsensus {
   -t ${params.ivar_af_threshold} \
   -m ${params.ivar_dp_threshold} \
   -p ${sampleID}_consensus
+
+  perl $baseDir/scripts/change_fasta_name.pl \
+  -fasta ${sampleID}_consensus.fa \
+  -name ${sampleID}I \
+  -out ${sampleID}_ivar_consensus.fa
   """
 
 }
@@ -695,6 +666,128 @@ process annotate {
 }
 
 
+/*
+####################################################################
+###### PHYLOGENETIC ANALYSIS ON CONSENSUS STARTS HERE ##############
+####################################################################
+*/
+
+//Merge the ivar and lofreq output consensus files into one channel
+mixed_consensus_ch = Channel.empty()
+if( 'ivar' in tools){
+  mixed_consensus_ch = mixed_consensus_ch.mix(ivar_consensus_ch)
+}
+if ('lofreq' in tools){
+  mixed_consensus_ch = mixed_consensus_ch.mix(lofreq_consensus_ch)
+}
+mixed_consensus_ch = mixed_consensus_ch.map {it[2]}
+
+
+process MuscleMSA {
+
+  publishDir "$params.outdir/phylogenetic/", mode: "copy"
+  tag "muscle alignment"
+  label 'process_low'
+  label 'genomeFinish'
+
+  input:
+  file(consensus) from mixed_consensus_ch.collect()
+  file(phyloref) from ch_phyloref
+
+  output:
+  tuple file("muscle_multiple_alignment.fasta"), file("muscle_multiple_alignment.phyi"), file("muscle_nj-tree.tree") into muscle_alignment_ch
+  file("muscle_multiple_alignment.phyi") into multiple_align_for_jmodel_ch
+  file("muscle_multiple_alignment.clw")
+
+
+  script:
+  """
+  cat *.fa *.fasta >to_be_aligned.fa
+
+  muscle \
+  -in to_be_aligned.fa \
+  -out muscle_multiple_alignment.afa \
+  -phyi -phyiout muscle_multiple_alignment.phyi \
+  -clw -clwout muscle_multiple_alignment.clw \
+  -fasta -fastaout muscle_multiple_alignment.fasta
+
+  muscle -maketree \
+  -in muscle_multiple_alignment.afa \
+  -out muscle_nj-tree.tree \
+  -cluster neighborjoining
+  """
+
+}
+
+
+process JModelTest {
+  publishDir "$params.outdir/phylogenetic/", mode: "copy"
+  tag "jmodel eval"
+  label 'process_low'
+  label 'genomeFinish'
+
+  
+}
+
+
+/*
+####################################################################
+###### ASSEMBLY BASED PIPELINE #### from here ######################
+####################################################################
+*/
+
+
+//Use spades for de novo assembly with isolate flag
+process dospades {
+  publishDir "$params.outdir/alignments/${sampleprefix}", mode: "copy"
+  label 'process_high'
+
+  input:
+  set ( sampleprefix, file(forwardfile), file(reversefile) ) from trimmingoutput2
+
+  output:
+  set ( sampleprefix, file("${sampleprefix}_spades") ) into spadesoutput
+
+  when: 'spades' in tools
+
+  """
+  spades.py -o ${sampleprefix}_spades -1 $forwardfile -2 $reversefile -t ${task.cpus} -m 120 --isolate
+  """
+}
+
+
+
+// ### GENOME FINISHING BLOCK GOES FROM here
+
+
+
+
+//THIS NEEDS TO BE MODIFIED IN ORDER TO TAKE INPUT FROM gapfilled genomes
+
+process mauvemsa {
+  label 'process_high'
+  publishDir "$params.outdir/alignments"
+
+  input:
+  file("sampleconsensus/*") from consensusfasta.toSortedList()
+  file(fastaref) from ch_fasta
+
+  output:
+  tuple file("covid_consensus_alignment.xmfa"), file("covid_consensus_alignment.tree"), file("covid_consensus_alignment.backbone"), file("covid_consensus_alignment.mfa"), file("covid_consensus_all.fa") into mauveout
+
+  when:
+  'lofreq' in tools
+
+  """
+  cat $fastaref sampleconsensus/*.consensus.fasta > covid_consensus_all.fa
+  mauveAligner \
+  --output=covid_consensus_alignment.xmfa \
+  --output-guide-tree=covid_consensus_alignment.tree \
+  --backbone-output=covid_consensus_alignment.backbone \
+  --output-alignment=covid_consensus_alignment.mfa \
+  covid_consensus_all.fa
+  """
+}
 
 
 /*
