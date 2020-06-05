@@ -726,7 +726,37 @@ process JModelTest {
   label 'process_low'
   label 'genomeFinish'
 
-  
+  input:
+  file(alignment) from multiple_align_for_jmodel_ch
+
+  output:
+  file("${alignment}.jmodeltest.*.html")
+  file("jmodel_tree_selection.txt")
+  path("images", type: 'dir')
+  path("resources", type: 'dir')
+  tuple file("jmodel_tree_selection_aic.tree"), file("jmodel_tree_selection_bic.tree") into jmodel_trees_ch
+
+
+  script:
+  """
+  java -jar /jmodeltest-2.1.10/jModelTest.jar -d ${alignment} \
+  -tr ${task.cpus} \
+  -g 4 \
+  -i \
+  -f \
+  -AIC \
+  -BIC \
+  -a \
+  -o ./jmodel_tree_selection.txt \
+  --set-property log-dir=`pwd` \
+  -w
+
+  perl $baseDir/scripts/extract_jmodel.pl \
+  -jmodel jmodel_tree_selection.txt \
+  -aictree jmodel_tree_selection_aic.tree \
+  -bictree jmodel_tree_selection_bic.tree
+  """
+
 }
 
 
