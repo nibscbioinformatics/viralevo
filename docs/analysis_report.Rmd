@@ -1,0 +1,63 @@
+---
+title: "Viral Genomes Analysis"
+author: "Francesco Lescai and Thomas Bleazard"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    theme: readable
+    highlight: tango
+    toc: true
+    toc_float: true
+    css: $baseDir/assets/nibsc_report.css
+editor_options:
+  chunk_output_type: console
+params:
+  vcf: NULL
+  callers: NULL
+  samples: NULL
+  genome: NULL
+  genemodel: NULL
+---
+
+
+# Introduction
+
+The analysis has been generating with the following steps:
+
+TO BE COMPLETED
+
+# Results
+
+The following results are reported by sample, and have been generated with the procedure described above.
+
+
+```{r parseInput, include=FALSE}
+vcfFiles <- strsplit(params$vcf, ",")
+samples <- strsplit(params$samples, ",")
+callers <- strsplit(params$callers, ",")
+vcfNames <- paste0(samples, "_", callers)
+names(vcfFiles) <- vcfNames
+```
+
+
+
+
+```{r run-summary-md, include=FALSE}
+library(Gviz)
+library(VariantAnnotation)
+library(GenomicFeatures)
+library(rtracklayer)
+library(Biostrings)
+library(tidyverse)
+out = NULL
+for (file in vcfFiles) {
+  genome <- params$genome
+  variants <- file
+  model <- params$genemodel
+  env = new.env()
+  out = c(out, knit_child('$baseDir/docs/loop_sample_variants.Rmd', envir=env))
+}
+
+```
+
+`r paste(out, collapse = '\n')`

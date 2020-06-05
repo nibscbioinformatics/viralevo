@@ -1,0 +1,61 @@
+---
+output: html_document
+editor_options:
+  chunk_output_type: console
+---
+
+
+
+```{r, include=FALSE}
+options(ucscChromosomeNames=FALSE)
+
+source("$baseDir/scripts/parseSnpEff.R")
+vcf <- readVcf(variants, genome = genome)
+vcf <- parseSnpEff(vcf)
+vars <- rowRanges(vcf)
+
+elementMetadata(vars) <- cbind(info(vcf), elementMetadata(vcf))
+
+if("AF" %in% names(geno(vcf))){
+  vars$AF <- unname(geno(vcf)$AF)
+}
+
+covidgr <- readRDS(model)
+
+chr <- as.character(unique(seqnames(covidgr)))
+gen <- genome(covidgr)
+gtrack <- GenomeAxisTrack()
+atrack <- AnnotationTrack(covidgr, name = "SARS-CoV-2")
+
+genetrack <- GeneRegionTrack(covidgr,
+                             genome = gen,
+                             chromosome = chr,
+                             name = "SARS-CoV-2",
+                             showId = TRUE,
+                             geneSymbol = TRUE,
+                             symbol = covidgr$gene)
+
+variants <- AnnotationTrack(vars, chromosome = chr, genome = gen,
+                          name = "Variants")
+
+af <- DataTrack(vars, genome = gen,
+                chromosome = chr,
+                data = "AF",
+                type = c("h", "p"),
+                group = as.character(s1ivar$Feature_Type),
+                legend = TRUE,
+                name = "Allele Fraction"
+                )
+
+covseq <- SequenceTrack(sequence = reference, genome = gen, chromosome = chr)
+
+cov <- DataTrack(range = "SRR11494468_indelqual.bam", genome = gen, type = "l",
+                     name = "Coverage", window = -1,
+                     chromosome = chr)
+
+```
+
+
+
+
+## Sample `r sample` with caller `r caller`

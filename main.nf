@@ -82,6 +82,10 @@ if (params.fasta) { ch_fasta = Channel.value(file(params.fasta, checkIfExists: t
 params.phyref = params.genome ? params.virus_reference[params.genome].pyloref ?: null : null
 if (params.phyref) { ch_phyloref = Channel.value(file(params.phyref, checkIfExists: true)) }
 
+rmodel
+params.genome_rmodel = params.genome ? params.virus_reference[params.genome].rmodel ?: null : null
+if (params.genome_rmodel) { ch_genome_rmodel = Channel.value(file(params.genome_rmodel, checkIfExists: true)) }
+
 primers_ch = params.primers ? Channel.value(file(params.primers)) : "null"
 ch_adapter = params.adapter ? Channel.value(file(params.adapter)) : "null"
 
@@ -388,6 +392,8 @@ process samtoolsindex {
   output:
   tuple sampleprefix, file(indelqualfile), file("${indelqualfile}.bai") into (bam_for_call_ch, bam_for_depth_ch)
   file("${sampleprefix}_flagstat.out") into flagstatouts
+  file(indelqualfile) into bam_for_report_ch
+  file("${indelqualfile}.bai") into bai_for_report_ch
 
   """
   samtools index \
@@ -818,6 +824,46 @@ process mauvemsa {
   covid_consensus_all.fa
   """
 }
+
+
+
+
+
+/*
+#####################################################################
+############## REPORTING BLOCKS GO HERE #############################
+#####################################################################
+*/
+
+process Reporting {
+  tag "reporting"
+  label 'process_low'
+  label 'reporting'
+
+  input:
+  tuple vcfData from annotated_vcf_ch.toList()
+  file(rmodel) from ch_genome_rmodel
+
+
+  script:
+  def sampleNamesList = []
+  def callersList = []
+  def vcfList = []
+  vcfData.each() { sample,caller,vcf ->
+    sampleNamesList.add(sample)
+    callersList.add(caller)
+    vcfList.add(vcf)
+  }
+  sampleNames = sampleNamesList.join(",")
+  callerLabels = callersList.join(",")
+  vcfFiles = vcfList.join(",")
+
+
+}
+
+
+
+
 
 
 /*
