@@ -14,8 +14,8 @@ RUN dpkg-reconfigure --frontend noninteractive locales
 COPY environment.yml /
 RUN conda env create -f /environment.yml && conda clean -a
 
-# Add separately some R packages
-RUN Rscript -e "install.packates(c('gt', 'pander'))"
-
 # Add conda installation dir to PATH (instead of doing 'conda activate')
 ENV PATH /usr/local/envs/viralevo-reporting/bin:$PATH
+
+# Add separately some R packages
+RUN Rscript -e "install.packates(c('gt', 'pander'))"
