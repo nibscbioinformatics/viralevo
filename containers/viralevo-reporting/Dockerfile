@@ -14,16 +14,5 @@ RUN dpkg-reconfigure --frontend noninteractive locales
 COPY environment.yml /
 RUN conda env create -f /environment.yml && conda clean -a
 
-# ABACAS to concatenate
-RUN mkdir -p /abacas
-WORKDIR /abacas
-RUN wget -O abacas.1.3.1.pl https://sourceforge.net/projects/abacas/files/abacas.1.3.1.pl/download
-WORKDIR /
-
-# jModelTest2
-RUN wget -O jmodeltest-2.1.10.tar.gz https://github.com/ddarriba/jmodeltest2/files/157117/jmodeltest-2.1.10.tar.gz
-RUN tar -xvzf jmodeltest-2.1.10.tar.gz
-
 # Add conda installation dir to PATH (instead of doing 'conda activate')
-ENV PATH /usr/local/envs/viralevo-genomefinishing/bin:$PATH
-ENV PATH /abacas:$PATH
+ENV PATH /usr/local/envs/viralevo-reporting/bin:$PATH
