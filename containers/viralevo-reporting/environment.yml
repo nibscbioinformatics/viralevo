@@ -18,5 +18,5 @@ dependencies:
   - bioconda::bioconductor-genomicfeatures=1.36.0
   - bioconda::bioconductor-variantannotation=1.30.0
   - bioconda::bioconductor-biostrings=2.52.0
-  - bioconda::bioconductor-gviz=1.32.0
+  - bioconda::bioconductor-gviz=1.28.0
   - bioconda::bioconductor-rtracklayer=1.44.2
