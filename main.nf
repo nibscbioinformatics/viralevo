@@ -702,7 +702,7 @@ process MuscleMSA {
 
   script:
   """
-  cat *.fa *.fasta >to_be_aligned.fa
+  cat $consensus $phyloref >to_be_aligned.fa
 
   muscle \
   -in to_be_aligned.fa \
