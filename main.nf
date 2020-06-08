@@ -879,6 +879,7 @@ process Reporting {
   ln -s $baseDir/assets/nibsc_report.css .
 
   Rscript -e "workdir<-getwd()
+    BiocManager::install('ggtree')
     rmarkdown::render('$baseDir/docs/analysis_report.Rmd',
     params = list(
       vcf = \\\"$vcfFiles\\\",
