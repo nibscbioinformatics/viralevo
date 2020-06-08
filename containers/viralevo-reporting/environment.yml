@@ -14,7 +14,6 @@ dependencies:
   - r::r-knitr=1.22
   - r::r-tidyverse=1.2.1
   - conda-forge::r-dt=0.12
-  - bioconda::bioconductor-ggtree=2.0.0
   - bioconda::bioconductor-genomicfeatures=1.36.0
   - bioconda::bioconductor-variantannotation=1.30.0
   - bioconda::bioconductor-biostrings=2.52.0
