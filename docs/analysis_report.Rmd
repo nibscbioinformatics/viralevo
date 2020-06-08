@@ -47,6 +47,7 @@ vcfInfo <- data.frame(
   vcf = vcfFiles,
   stringsAsFactors = FALSE
 )
+names(vcfInfo) <- c("sample", "caller", "vcf")
 
 basedir <- params$basedir
 
@@ -58,6 +59,7 @@ bamInfo <- data.frame(
   bam = bamFiles,
   stringsAsFactors = FALSE
 )
+names(bamInfo) <- c("sample", "bam")
 
 sampleData <- vcfInfo %>%
   left_join(bamInfo, by = "sample")
