@@ -872,7 +872,7 @@ process Reporting {
 
   """
   Rscript -e "workdir<-getwd()
-    rmarkdown::render('$baseDir/scripts/analysis_report.Rmd',
+    rmarkdown::render('$baseDir/docs/analysis_report.Rmd',
     params = list(
       vcf = \\\"$vcfFiles\\\",
       callers = \\\"$callerLabels\\\",
