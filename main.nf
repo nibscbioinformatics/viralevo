@@ -82,7 +82,6 @@ if (params.fasta) { ch_fasta = Channel.value(file(params.fasta, checkIfExists: t
 params.phyref = params.genome ? params.virus_reference[params.genome].pyloref ?: null : null
 if (params.phyref) { ch_phyloref = Channel.value(file(params.phyref, checkIfExists: true)) }
 
-rmodel
 params.genome_rmodel = params.genome ? params.virus_reference[params.genome].rmodel ?: null : null
 if (params.genome_rmodel) { ch_genome_rmodel = Channel.value(file(params.genome_rmodel, checkIfExists: true)) }
 
