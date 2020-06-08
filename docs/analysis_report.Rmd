@@ -49,8 +49,6 @@ vcfInfo <- data.frame(
 )
 names(vcfInfo) <- c("sample", "caller", "vcf")
 
-basedir <- params$basedir
-
 bamSamples <- strsplit(params$bamSamples, ",")
 bamFiles <- strsplit(params$bamFiles, ",")
 
@@ -83,6 +81,7 @@ for (index in 1:dim(sampleData)[[1]]) {
   caller <- sampleData[index,]$caller
   vcffile <- sampleData[index,]$vcf
   bamfile <- sampleData[index,]$bam
+  baseDir <- params$basedir
   env = new.env()
   out = c(out, knit_child(paste0(baseDir, "/docs/loop_sample_variants.Rmd"), envir=env))
 }
