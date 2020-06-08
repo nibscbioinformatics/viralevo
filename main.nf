@@ -838,9 +838,9 @@ process Reporting {
   label 'reporting'
 
   input:
-  tuple vcfData from annotated_vcf_ch.toList()
+  val vcfData from annotated_vcf_ch.toList()
   file(rmodel) from ch_genome_rmodel
-  tuple bamData from bam_for_report_ch.toList()
+  val bamData from bam_for_report_ch.toList()
 
 
   script:
