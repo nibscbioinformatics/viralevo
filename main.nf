@@ -875,7 +875,7 @@ process Reporting {
 
   """
   ln -s $baseDir/assets/nibsc_report.css .
-  
+
   Rscript -e "workdir<-getwd()
     rmarkdown::render('$baseDir/docs/analysis_report.Rmd',
     params = list(
