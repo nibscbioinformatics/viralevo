@@ -33,6 +33,7 @@ TO BE COMPLETED
 
 The following results are reported by sample, and have been generated with the procedure described above.
 
+## Read Based Variant Analysis
 
 ```{r parseInput, include=FALSE}
 vcfFiles <- strsplit(params$vcf, ",")
@@ -62,8 +63,6 @@ sampleData <- vcfInfo %>%
 ```
 
 
-
-
 ```{r run-summary-md, include=FALSE}
 library(Gviz)
 library(VariantAnnotation)
@@ -72,10 +71,14 @@ library(rtracklayer)
 library(Biostrings)
 library(tidyverse)
 out = NULL
-for (file in vcfFiles) {
+for (index in 1:dim(sampleData)[[1]]) {
   genome <- params$genome
   variants <- file
   model <- params$genemodel
+  sample <- sampleData[index,]$sample
+  caller <- sampleData[index,]$caller
+  vcffile <- sampleData[index,]$vcf
+  bamfile <- sampleData[index,]$bam
   env = new.env()
   out = c(out, knit_child(paste0(baseDir, "/docs/loop_sample_variants.Rmd"), envir=env))
 }
