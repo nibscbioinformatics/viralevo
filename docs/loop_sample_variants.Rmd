@@ -56,6 +56,6 @@ cov <- DataTrack(range = bamfile, genome = gen, type = "l",
 
 ### Sample `r sample` with caller `r caller`
 
-```{r plotGenome, results='asis', echo=FALSE}
+```{r, results='asis', echo=FALSE}
 plotTracks(list(gtrack, genetrack, variants, af, cov))
 ```
