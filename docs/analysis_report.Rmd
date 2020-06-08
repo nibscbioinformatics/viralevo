@@ -73,6 +73,7 @@ library(GenomicFeatures)
 library(rtracklayer)
 library(Biostrings)
 library(tidyverse)
+library(knitr)
 out = NULL
 for (index in 1:dim(sampleData)[[1]]) {
   genome <- params$genome
