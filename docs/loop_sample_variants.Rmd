@@ -42,7 +42,7 @@ af <- DataTrack(vars, genome = gen,
                 chromosome = chr,
                 data = "AF",
                 type = c("h", "p"),
-                group = as.character(s1ivar$Feature_Type),
+                group = as.character(vars$Feature_Type),
                 legend = TRUE,
                 name = "Allele Fraction"
                 )
