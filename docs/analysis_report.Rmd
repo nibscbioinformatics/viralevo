@@ -36,6 +36,7 @@ The following results are reported by sample, and have been generated with the p
 ## Read Based Variant Analysis
 
 ```{r parseInput, include=FALSE}
+library(tidyverse)
 vcfFiles <- strsplit(params$vcf, ",")
 samples <- strsplit(params$samples, ",")
 callers <- strsplit(params$callers, ",")
