@@ -833,6 +833,7 @@ process mauvemsa {
 */
 
 process Reporting {
+  publishDir "${params.outdir}/reports", mode: 'copy'
   tag "reporting"
   label 'process_low'
   label 'reporting'
@@ -842,6 +843,8 @@ process Reporting {
   file(rmodel) from ch_genome_rmodel
   val bamData from bam_for_report_ch.toList()
 
+  output:
+  file("analysis_report.html")
 
   script:
   // handling here the VCF files and metadata

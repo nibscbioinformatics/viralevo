@@ -8,7 +8,7 @@ output:
     highlight: tango
     toc: true
     toc_float: true
-    css: $baseDir/assets/nibsc_report.css
+    css: "`r params$baseDir`/assets/nibsc_report.css"
 editor_options:
   chunk_output_type: console
 params:
