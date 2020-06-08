@@ -390,10 +390,8 @@ process samtoolsindex {
   set ( sampleprefix, file(indelqualfile) ) from indelqualforindex
 
   output:
-  tuple sampleprefix, file(indelqualfile), file("${indelqualfile}.bai") into (bam_for_call_ch, bam_for_depth_ch)
+  tuple sampleprefix, file(indelqualfile), file("${indelqualfile}.bai") into (bam_for_call_ch, bam_for_depth_ch, bam_for_report_ch)
   file("${sampleprefix}_flagstat.out") into flagstatouts
-  file(indelqualfile) into bam_for_report_ch
-  file("${indelqualfile}.bai") into bai_for_report_ch
 
   """
   samtools index \
@@ -843,9 +841,11 @@ process Reporting {
   input:
   tuple vcfData from annotated_vcf_ch.toList()
   file(rmodel) from ch_genome_rmodel
+  tuple bamData from bam_for_report_ch.toList()
 
 
   script:
+  // handling here the VCF files and metadata
   def sampleNamesList = []
   def callersList = []
   def vcfList = []
@@ -857,6 +857,36 @@ process Reporting {
   sampleNames = sampleNamesList.join(",")
   callerLabels = callersList.join(",")
   vcfFiles = vcfList.join(",")
+
+  // handling the BAM files and metadata
+  def bamSampleList = []
+  def bamList = []
+  def baiList = []
+  bamData.each() { sample,bam,bai ->
+    bamSampleList.add(sample)
+    bamList.add(bam)
+    baiList.add(bai)
+  }
+  bamSamples = bamSampleList.join(",")
+  bamFiles = bamList.join(",")
+  baiFiles = baiList.join(",")
+
+  """
+  Rscript -e "workdir<-getwd()
+    rmarkdown::render('$baseDir/scripts/analysis_report.Rmd',
+    params = list(
+      vcf = \\\"$vcfFiles\\\",
+      callers = \\\"$callerLabels\\\",
+      samples = \\\"$sampleNames\\\",
+      genome = \\\"${params.genome}\\\",
+      genemodel = \\\"$rmodel\\\",
+      baseDir = \\\"$baseDir\\\",
+      bamSamples = \\\"$bamSamples\\\",
+      bamFiles = \\\"$bamFiles\\\"
+      ),
+    knit_root_dir=workdir,
+    output_dir=workdir)"
+  """
 
 
 }

@@ -17,6 +17,9 @@ params:
   samples: NULL
   genome: NULL
   genemodel: NULL
+  baseDir: NULL
+  bamSamples: NULL
+  bamFiles: NULL
 ---
 
 
@@ -35,8 +38,27 @@ The following results are reported by sample, and have been generated with the p
 vcfFiles <- strsplit(params$vcf, ",")
 samples <- strsplit(params$samples, ",")
 callers <- strsplit(params$callers, ",")
-vcfNames <- paste0(samples, "_", callers)
-names(vcfFiles) <- vcfNames
+
+vcfInfo <- data.frame(
+  sample = samples,
+  caller = callers,
+  vcf = vcfFiles,
+  stringsAsFactors = FALSE
+)
+
+basedir <- params$basedir
+
+bamSamples <- strsplit(params$bamSamples, ",")
+bamFiles <- strsplit(params$bamFiles, ",")
+
+bamInfo <- data.frame(
+  sample = bamSamples,
+  bam = bamFiles,
+  stringsAsFactors = FALSE
+)
+
+sampleData <- vcfInfo %>%
+  left_join(bamInfo, by = "sample")
 ```
 
 
@@ -55,7 +77,7 @@ for (file in vcfFiles) {
   variants <- file
   model <- params$genemodel
   env = new.env()
-  out = c(out, knit_child('$baseDir/docs/loop_sample_variants.Rmd', envir=env))
+  out = c(out, knit_child(paste0(baseDir, "/docs/loop_sample_variants.Rmd"), envir=env))
 }
 
 ```
