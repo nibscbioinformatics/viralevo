@@ -842,6 +842,8 @@ process Reporting {
   val vcfData from annotated_vcf_ch.toList()
   file(rmodel) from ch_genome_rmodel
   val bamData from bam_for_report_ch.toList()
+  tuple file(muscleFastaAln), file(musclePhyiAln), file(muscleTree) from muscle_alignment_ch
+  tuple file(aicTree), file(bicTree) from jmodel_trees_ch
 
   output:
   file("analysis_report.html")
@@ -886,7 +888,11 @@ process Reporting {
       genemodel = \\\"$rmodel\\\",
       baseDir = \\\"$baseDir\\\",
       bamSamples = \\\"$bamSamples\\\",
-      bamFiles = \\\"$bamFiles\\\"
+      bamFiles = \\\"$bamFiles\\\",
+      aicTree = \\\"$aicTree\\\",
+      bicTree = \\\"$bicTree\\\",
+      msaFasta = \\\"$muscleFastaAln\\\",
+      msaPhylip = \\\"$musclePhyiAln\\\"
       ),
     knit_root_dir=workdir,
     output_dir=workdir)"

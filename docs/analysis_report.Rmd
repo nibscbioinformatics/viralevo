@@ -20,6 +20,10 @@ params:
   baseDir: NULL
   bamSamples: NULL
   bamFiles: NULL
+  bicTree: NULL
+  aicTree: NULL
+  msaFasta: NULL
+  msaPhylip: NULL
 ---
 
 
@@ -88,3 +92,117 @@ for (index in 1:dim(sampleData)[[1]]) {
 ```
 
 `r paste(out, collapse = '\n')`
+
+
+## Read Based Consensus Phylogenetic Analysis
+
+
+```{r parseTree, include=FALSE}
+library(ggtree)
+jmodel_bic <- read.tree(params$bicTree)
+jmodel_aic <- read.tree(params$aicTree)
+alignment <- readDNAMultipleAlignment(params$msaPhylip, format = "phylip")
+```
+
+The analysis has been carried out using [.. to be completed ..]
+
+
+### Akaike Information Criterion selection
+
+
+```{r AICtree, results='asis', echo=FALSE}
+aic <- ggtree(jmodel_aic)+
+  geom_tiplab()+
+  geom_rootpoint(color = "black", size = 3)+
+  geom_tippoint(color = "blue", alpha = .8, size = 3)
+plot(aic)
+```
+
+
+
+### Bayesian Information Criterion selection
+
+
+```{r BICtree, results='asis', echo=FALSE}
+bic <- ggtree(jmodel_bic)+
+  geom_tiplab()+
+  geom_rootpoint(color = "black", size = 3)+
+  geom_tippoint(color = "blue", alpha = .8, size = 3)
+plot(bic)
+```
+
+
+```{r MSAplot, results='asis', echo=FALSE}
+msaplot(bic, fasta = params$msaFasta)
+```
+
+
+
+
+
+
+# Methods
+
+## Reference Based Analysis
+
+### Reference
+
+
+### Alignment
+
+
+### Variant Calling and Filtering
+
+
+### Phylogenetic Analysis
+
+**Multiple Sequence Alignment**
+
+Muscle
+
+**Computation of multiple trees**
+
+In order to carry out the best tree computation and an unbiased selection of the most informative tree, we have used jModelTest2. jModelTest is a tool to carry out statistical selection of best-fit models of nucleotide substitution. It implements five different model selection strategies: hierarchical and dynamical likelihood ratio tests (hLRT and dLRT),
+Akaike and Bayesian information criteria (AIC and BIC), and a decision theory method (DT). It also provides
+estimates of model selection uncertainty, parameter importance and model-averaged parameter estimates, including model-averaged tree topologies.
+
+In order to compute the trees we have used the following substitution schemes: JC/F81, K80/HKY, SYM/GTR.
+
+Then, the tree topology has been defined as the best among the Nearest Neighbour Interchange and the Subtree Pruning and Regrafting with a Maximum-Likelihood search.
+
+
+**Selection of the best tree**
+
+The Akaike information criterion (AIC, [Akaike, 1974] is an asymptotically unbiased estimator of the Kullback-
+Leibler information quantity [S. Kullback, 1951]. We can think of the AIC as the amount of information lost
+when we use a specific model to approximate the real process of molecular evolution. Therefore, the model
+with the smallest AIC is preferred.
+
+The AIC is computed as:
+
+$AIC = -2l + 2k$
+
+where l is the maximum log-likelihood value of the data under this model and Ki is the number of free
+parameters in the model, including branch lengths if they were estimated de novo. When sample size (n) is
+small compared to the number of parameters (say, nK < 40) the use of a second order AIC, AICc [Hurvich and
+Tsai, 1989; Sugiura, 1978], is recommended:
+
+$AIC_{c} = AIC + {(2k(k+1)) / (n-k-1)}$
+
+The AIC compares several candidate models simultaneously, it can be used to compare both nested and
+non-nested models, and model-selection uncertainty can be easily quantified using the AIC differences and
+Akaike weights (see Model uncertainty below). Burnham and Anderson [2003] provide an excellent introduction
+to the AIC and model selection in general.
+
+
+An alternative to the use of the AIC is the Bayesian Information Criterion (BIC) [Schwarz, 1978]:
+
+$BIC = -2l + klog(n)$
+
+Given equal priors for all competing models, choosing the model with the smallest BIC is equivalent to
+selecting the model with the maximum posterior probability. Alternatively, Bayes factors for models of molecular
+evolution can be calculated using reversible jump MCMC [Huelsenbeck et al., 2004]. We can easily use the
+BIC instead of the AIC to calculate BIC differences or BIC weights.
+
+
+## Assembly Based Analysis
