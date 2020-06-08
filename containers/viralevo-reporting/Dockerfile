@@ -19,4 +19,5 @@ ENV PATH /usr/local/envs/viralevo-reporting/bin:$PATH
 
 # Add separately some R packages
 RUN Rscript -e "install.packages(c('gt', 'pander'), repos = 'https://cloud.r-project.org')"
-RUN Rscript -e "install.packages('ggtree', repos = 'https://cloud.r-project.org')"
+RUN Rscript -e "install.packages('BiocManager', repos = 'https://cloud.r-project.org')"
+RUN Rscript -e "BiocManager::install('ggtree')"
