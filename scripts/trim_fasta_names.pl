@@ -39,7 +39,7 @@ while(<FILE>){
     if(exists($namesCheck{$newName})){
       $newName = substr($newName, 0, 7);
       $newName = $newName."_".$namesCheck{$newName};
-      $$namesCheck{$newName}++;
+      $namesCheck{$newName}++;
     }
     else {
       $namesCheck{$newName} = 1;
