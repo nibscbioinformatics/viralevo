@@ -36,6 +36,7 @@ while(<FILE>){
     }
     my $newline = ">".$name.$append;
     print OUT $newline."\n";
+		$count++;
   }
   else {
     print OUT $_."\n";
