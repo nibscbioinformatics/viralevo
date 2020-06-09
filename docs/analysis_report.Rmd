@@ -139,7 +139,9 @@ msaplot(bic, fasta = params$msaFasta)
 
 
 
-
+```{r SaveAll, include=FALSE}
+save.image("analysis_report.RData")
+```
 
 # Methods
 

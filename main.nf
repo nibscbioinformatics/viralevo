@@ -858,6 +858,7 @@ process Reporting {
 
   output:
   file("analysis_report.html")
+  file("analysis_report.RData")
 
   script:
   // handling here the VCF files and metadata
