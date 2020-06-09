@@ -20,9 +20,18 @@ yum install -y \
     pandoc \
     python-pip
 
+### Install deeptools
+pip install deeptools
+
 ### R packages installations
 mkdir -p /opt/software/rpackages
 cd /opt/software/rpackages
 Rscript -e "install.packages(c('tidyverse', 'pander', 'rmarkdown', 'knitr', 'dt'), repos = 'https://cloud.r-project.org')"
 Rscript -e "install.packages('BiocManager', repos = 'https://cloud.r-project.org')"
+
+## install unresolved dependencies
+wget -O Hmisc_4.4-0.tar.gz https://cran.r-project.org/src/contrib/Hmisc_4.4-0.tar.gz
+Rscript -e "install.packages('Hmisc_4.4-0.tar.gz', repos = NULL)"
+
+### continue installation
 Rscript -e "BiocManager::install(c('ggtree', 'Gviz', 'VariantAnnotation', 'GenomicFeatures', 'rtracklayer', 'Biostrings'))"
