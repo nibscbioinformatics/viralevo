@@ -37,9 +37,11 @@ while(<FILE>){
     my $newName = substr($name, 0, 10);
 
     if(exists($namesCheck{$newName})){
+			my $append = $namesCheck{$newName};
       $newName = substr($newName, 0, 7);
-      $newName = $newName."_".$namesCheck{$newName};
-      $namesCheck{$newName}++;
+      $newName = $newName."_".$append;
+      $append++;
+			$namesCheck{$newName} = $append;
     }
     else {
       $namesCheck{$newName} = 1;
