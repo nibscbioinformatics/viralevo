@@ -1,12 +1,28 @@
 
-Bootstrap: docker
-From: nibscbioinformatics/viralevo-reporting:1.0.1
-IncludeCmd: yes
+Bootstrap: library
+From: default/centos:7.6
 
 %post
-export PATH=/usr/local/envs/viralevo-reporting/bin:${PATH}
-Rscript -e "install.packages('BiocManager', repos = 'https://cloud.r-project.org')"
-Rscript -e "BiocManager::install('ggtree')"
+### basic setup of system wide tools and dependencies
+yum update -y
+yum install -y wget
+yum install -y epel-release
+yum install -y R
+yum install -y \
+    procps \
+    make \
+    gcc \
+    gcc-c++ \
+    libcurl-devel \
+    libxml2-devel \
+    java-1.7.0-openjdk-devel \
+    openssl-devel \
+    pandoc \
+    python-pip
 
-%environment
-export PATH=/usr/local/envs/viralevo-reporting/bin:${PATH}
+### R packages installations
+mkdir -p /opt/software/rpackages
+cd /opt/software/rpackages
+Rscript -e "install.packages(c('tidyverse', 'pander', 'rmarkdown', 'knitr', 'dt'), repos = 'https://cloud.r-project.org')"
+Rscript -e "install.packages('BiocManager', repos = 'https://cloud.r-project.org')"
+Rscript -e "BiocManager::install(c('ggtree', 'Gviz', 'VariantAnnotation', 'GenomicFeatures', 'rtracklayer', 'Biostrings'))"
