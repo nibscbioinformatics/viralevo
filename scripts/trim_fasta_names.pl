@@ -27,6 +27,7 @@ open(TABLE, ">names_conversion_table.txt") or die "Can't write on conversion tab
 
 print TABLE "original\trenamed\n";
 
+my $count=1;
 my %namesCheck;
 
 while(<FILE>){
@@ -37,11 +38,9 @@ while(<FILE>){
     my $newName = substr($name, 0, 10);
 
     if(exists($namesCheck{$newName})){
-			my $append = $namesCheck{$newName};
       $newName = substr($newName, 0, 7);
-      $newName = $newName."_".$append;
-      $append++;
-			$namesCheck{$newName} = $append;
+      $newName = $newName."_".$count;
+      $count++;
     }
     else {
       $namesCheck{$newName} = 1;
