@@ -17,7 +17,10 @@ yum install -y \
     libxml2-devel \
     java-1.7.0-openjdk-devel \
     openssl-devel \
-    pandoc \
+    pandoc
+
+yum install -y https://centos7.iuscommunity.org/ius-release.rpm
+yum install -y \
     python36u \
     python36u-devel \
     python36u-pip
