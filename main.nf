@@ -790,12 +790,14 @@ process dospades {
   set ( sampleprefix, file(forwardfile), file(reversefile) ) from trimmingoutput2
 
   output:
-  set ( sampleprefix, file("${sampleprefix}_spades") ) into spadesoutput
+  set ( sampleprefix, file("${sampleprefix}_spades") ) into spadesoutputgeneral
+  set ( sampleprefix, file("${sampleprefix}_contigs.fasta") ) into spadescontigs
 
   when: 'spades' in tools
 
   """
   spades.py -o ${sampleprefix}_spades -1 $forwardfile -2 $reversefile -t ${task.cpus} -m 120 --isolate
+  cp ${sampleprefix}_spades/contigs.fasta ${sampleprefix}_contigs.fasta
   """
 }
 
@@ -813,14 +815,14 @@ process mauvemsa {
   publishDir "$params.outdir/alignments"
 
   input:
-  file("sampleconsensus/*") from consensusfasta.toSortedList()
+  file("samplecontigs/*") from spadescontigs.toSortedList()
   file(fastaref) from ch_fasta
 
   output:
   tuple file("covid_consensus_alignment.xmfa"), file("covid_consensus_alignment.tree"), file("covid_consensus_alignment.backbone"), file("covid_consensus_alignment.mfa"), file("covid_consensus_all.fa") into mauveout
 
   when:
-  'lofreq' in tools
+  'spades' in tools
 
   """
   cat $fastaref sampleconsensus/*.consensus.fasta > covid_consensus_all.fa
