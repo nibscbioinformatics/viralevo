@@ -642,6 +642,8 @@ process makevartable {
   output:
   file("varianttable.csv") into nicetable
 
+  when: 'lofreq' in tools | 'ivar' in tools | 'all' in tools
+
   """
   python $baseDir/scripts/tablefromvcf.py varcalls varianttable.csv
   """
@@ -659,7 +661,7 @@ process annotate {
   output:
   tuple val(sampleID), val(caller), file("${vcf.getBaseName()}_anno.vcf") into annotated_vcf_ch
 
-  when: 'snpeff' in tools | 'all' in tools
+  when: 'lofreq' in tools | 'ivar' in tools | 'all' in tools
 
   script:
   """
@@ -703,6 +705,7 @@ process MuscleMSA {
   file("muscle_multiple_alignment.clw")
   file("names_conversion_table.txt") into aligned_names_ch
 
+  when: 'lofreq' in tools | 'ivar' in tools | 'all' in tools
 
   script:
   """
@@ -744,6 +747,7 @@ process JModelTest {
   path("resources", type: 'dir')
   tuple file("jmodel_tree_selection_aic.tree"), file("jmodel_tree_selection_bic.tree") into jmodel_trees_ch
 
+  when: 'lofreq' in tools | 'ivar' in tools | 'all' in tools
 
   script:
   """
