@@ -12,8 +12,10 @@
 // ######### DEFAULT PARAMS SETTINGS ##########################
 params.genome = 'SARS-CoV-2'
 params.adapter = 'https://raw.githubusercontent.com/nibscbioinformatics/testdata/master/covid19/nexteraPE.fasta'
-params.ivar_af_threshold = 0.001
-params.ivar_dp_threshold = 10
+params.ivar_calling_af_threshold = 0.001
+params.ivar_calling_dp_threshold = 10
+params.ivar_consensus_af_threshold = 0.01
+params.ivar_consensus_dp_threshold = 100
 
 def helpMessage() {
     // TODO nf-core: Add to this help message with new command line parameters
@@ -575,8 +577,8 @@ process ivarCalling {
   --reference $fasta \
   $trimmedbam \
   | ivar variants -p "${sampleID}_variants" \
-  -t ${params.ivar_af_threshold} \
-  -m ${params.ivar_dp_threshold} \
+  -t ${params.ivar_calling_af_threshold} \
+  -m ${params.ivar_calling_dp_threshold} \
   -r $fasta \
   -g $gff
 
@@ -609,8 +611,8 @@ process ivarConsensus {
   samtools mpileup -aa -A -d 0 -Q 0 \
   ${sampleID}_primer_sorted.bam \
   | ivar consensus \
-  -t ${params.ivar_af_threshold} \
-  -m ${params.ivar_dp_threshold} \
+  -t ${params.ivar_consensus_af_threshold} \
+  -m ${params.ivar_consensus_dp_threshold} \
   -p ${sampleID}_consensus
 
   perl $baseDir/scripts/change_fasta_name.pl \
