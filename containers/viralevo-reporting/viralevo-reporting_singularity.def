@@ -20,11 +20,6 @@ yum install -y \
     pandoc \
     python-pip
 
-## fixing locales issues
-yum install -y locales
-locale-gen --purge "en_GB.UTF-8"
-dpkg-reconfigure --frontend noninteractive locales
-
 ### R packages installations
 mkdir -p /opt/software/rpackages
 cd /opt/software/rpackages
