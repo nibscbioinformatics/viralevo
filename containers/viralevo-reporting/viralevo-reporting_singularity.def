@@ -18,7 +18,9 @@ yum install -y \
     java-1.7.0-openjdk-devel \
     openssl-devel \
     pandoc \
-    python-pip
+    python36u \
+    python36u-devel \
+    python36u-pip
 
 ### Install deeptools
 pip install deeptools
