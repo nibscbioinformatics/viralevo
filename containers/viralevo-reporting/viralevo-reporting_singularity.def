@@ -9,6 +9,7 @@ yum install -y wget
 yum install -y epel-release
 yum install -y R
 yum install -y \
+    procps \
     make \
     gcc \
     gcc-c++ \
@@ -16,28 +17,17 @@ yum install -y \
     libxml2-devel \
     java-1.7.0-openjdk-devel \
     openssl-devel \
-    texlive-* \
     pandoc \
     python-pip
 
-##### ANACONDA INSTALLATION #####
-mkdir -p /opt/software/anaconda
-cd /opt/software/anaconda
-wget -O Anaconda2-2019.10-Linux-x86_64.sh "https://repo.anaconda.com/archive/Anaconda2-2019.10-Linux-x86_64.sh"
-bash Anaconda2-2019.10-Linux-x86_64.sh -b -f -p /opt/software/anaconda
-eval "$(/opt/software/anaconda/bin/conda shell.bash hook)"
-conda init
-
-#### INSTALL remaining PACKAGES WITH CONDA #####
-wget -O environment.yml "https://raw.githubusercontent.com/nibscbioinformatics/viralevo/master/environment.yml"
-conda env create -f environment.yml
-#
+## fixing locales issues
+yum install -y locales
+locale-gen --purge "en_GB.UTF-8"
+dpkg-reconfigure --frontend noninteractive locales
 
 ### R packages installations
 mkdir -p /opt/software/rpackages
 cd /opt/software/rpackages
+Rscript -e "install.packages(c('tidyverse', 'pander', 'rmarkdown', 'knitr', 'dt'), repos = 'https://cloud.r-project.org')"
 Rscript -e "install.packages('BiocManager', repos = 'https://cloud.r-project.org')"
-Rscript -e "BiocManager::install('ggtree')"
-
-%environment
-export PATH=/opt/software/anaconda/envs/nibscbioinformatics-viralevo-1.0dev/bin:${PATH}
+Rscript -e "BiocManager::install(c('ggtree', 'Gviz', 'VariantAnnotation', 'GenomicFeatures', 'rtracklayer', 'Biostrings'))"
