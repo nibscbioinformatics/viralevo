@@ -34,7 +34,7 @@ while(<FILE>){
   chomp($_);
   if ($_=~/>/){
     my $name = $_;
-    my $name =~ s/>//;
+    $name =~ s/>//;
     my $newName = str($name, 0, 10);
 
     if(exists($namesCheck{$newName})){
