@@ -6,6 +6,8 @@ Include: yum
 
 %post
 ### basic setup of system wide tools and dependencies
+apt-get install -y yum
+yum update -y
 yum install -y wget
 yum install -y epel-release
 yum install -y R
