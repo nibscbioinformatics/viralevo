@@ -35,10 +35,10 @@ while(<FILE>){
   if ($_=~/>/){
     my $name = $_;
     $name =~ s/>//;
-    my $newName = str($name, 0, 10);
+    my $newName = substr($name, 0, 10);
 
     if(exists($namesCheck{$newName})){
-      $newName = str($newName, 0, 7);
+      $newName = substr($newName, 0, 7);
       $newName = $newName."_".$counter;
       $counter++;
     }
