@@ -27,6 +27,9 @@ yum install -y python36u python36u-libs python36u-devel python36u-pip
 ### Install deeptools
 python3.6 -m pip install deeptools
 
+### Install libraries needed to compile JPEG packages in R
+yum install -y libjpeg-turbo-devel
+
 
 ### R packages installations
 mkdir -p /opt/software/rpackages
