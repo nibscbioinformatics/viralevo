@@ -701,14 +701,19 @@ process MuscleMSA {
   tuple file("muscle_multiple_alignment.fasta"), file("muscle_multiple_alignment.phyi"), file("muscle_nj-tree.tree") into muscle_alignment_ch
   file("muscle_multiple_alignment.phyi") into multiple_align_for_jmodel_ch
   file("muscle_multiple_alignment.clw")
+  file("names_conversion_table.txt") into aligned_names_ch
 
 
   script:
   """
   cat $consensus $phyloref >to_be_aligned.fa
 
+  perl $baseDir/scripts/trim_fasta_names.pl \
+  -fasta to_be_aligned.fa \
+  -out to_be_aligned_trimmed.fa
+
   muscle \
-  -in to_be_aligned.fa \
+  -in to_be_aligned_trimmed.fa \
   -out muscle_multiple_alignment.afa \
   -phyi -phyiout muscle_multiple_alignment.phyi \
   -clw -clwout muscle_multiple_alignment.clw \
