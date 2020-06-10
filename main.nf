@@ -651,7 +651,7 @@ process makevartable {
   """
 }
 
-
+//annotate with snpEff and then filter using criteria 100 depth and 0.05 VAF
 process annotate {
   publishDir "$params.outdir/calling/$caller/$sampleID", mode: "copy"
   tag "snpEff $caller $sampleID"
@@ -661,15 +661,15 @@ process annotate {
   tuple sampleID, caller, file(vcf) from vcf_to_annotate_ch
 
   output:
-  tuple val(sampleID), val(caller), file("${vcf.getBaseName()}_anno.vcf") into annotated_vcf_ch
+  tuple val(sampleID), val(caller), file("${sampleID}_${caller}_anno.vcf") into annotated_vcf_ch
 
   when: 'lofreq' in tools | 'ivar' in tools | 'all' in tools
 
   script:
   """
-  snpEff -ud 1 NC_045512.2 ${vcf} >"${vcf.getBaseName()}_anno.vcf"
+  snpEff -ud 1 NC_045512.2 ${vcf} > ${sampleID}_${caller}_raw_anno.vcf
+  python $baseDir/scripts/filterannotated.py ${sampleID}_${caller}_raw_anno.vcf $caller ${sampleID}_${caller}_anno.vcf
   """
-
 }
 
 
