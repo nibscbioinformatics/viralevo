@@ -162,6 +162,13 @@ save.image("analysis_report.RData")
 ### Variant Calling and Filtering
 
 
+**iVar Calling**
+
+The *iVar* workflow has been specifically developed to call variants within viral genomes when they are sequenced with amplicon approaches, and with the goal of reconstructing how viruses evolve within hosts.
+The tool is therefore particularly suitable for the analysis when high-depth amplicon sequencing is performed, and when the identification of lower variant allele-fraction is necessary.
+The tool allows removal of primers used for the amplification, calling variants in combination with *Samtools* and creating a consensus sequence.
+[iVar Publication](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-018-1618-7)
+
 ### Phylogenetic Analysis
 
 **Multiple Sequence Alignment**
@@ -170,6 +177,7 @@ Once consensus sequences have been generated from the variant calling pipelines,
 
 MUSCLE is a tool originally developed for creating multiple alignments of protein sequences. Elements of the algorithm include fast distance estimation using kmer counting, progressive alignment using a new profile function we call the log-expectation score, and refinement using tree-dependent restricted partitioning.
 It produces alignments of competitive accuracy compared to other methods and emits results in several different formats: characteristics we found useful in the context of this pipeline.
+[MUSCLE paper](https://pubmed.ncbi.nlm.nih.gov/15034147/)
 
 **Computation of multiple trees**
 
@@ -179,7 +187,7 @@ estimates of model selection uncertainty, parameter importance and model-average
 
 In order to compute the trees we have used the following substitution schemes: JC/F81, K80/HKY, SYM/GTR.
 
-Then, the tree topology has been defined as the best among the Nearest Neighbour Interchange and the Subtree Pruning and Regrafting with a Maximum-Likelihood search.
+Then, the tree topology has been defined as the best among the Nearest Neighbour Interchange and the Subtree Pruning and Regrafting with a Maximum-Likelihood search.[jModelTest2 publication](https://www.nature.com/articles/nmeth.2109)
 
 
 **Selection of the best tree**
