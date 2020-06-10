@@ -791,7 +791,7 @@ process dospades {
 
   output:
   set ( sampleprefix, file("${sampleprefix}_spades") ) into spadesoutputgeneral
-  set ( sampleprefix, file("${sampleprefix}_contigs.fasta") ) into spadescontigs
+  file("${sampleprefix}_contigs.fasta") into spadescontigs
 
   when: 'spades' in tools | 'all' in tools
 
