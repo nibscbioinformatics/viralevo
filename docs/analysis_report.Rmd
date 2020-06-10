@@ -164,9 +164,19 @@ save.image("analysis_report.RData")
 
 ### Alignment
 
+The reads are trimmed for sequencing adapters and quality using *Cutadapt*, using the following criteria:
+
+- xxx
+- yyy
+
+Following the trimming, the reads are then aligned to the reference using *bwa-mem* [BWA manuscript](https://arxiv.org/abs/1303.3997), using default settings.
+
 
 ### Variant Calling and Filtering
 
+**LoFreq Calling**
+
+[describe here]
 
 **iVar Calling**
 
@@ -174,6 +184,26 @@ The *iVar* workflow has been specifically developed to call variants within vira
 The tool is therefore particularly suitable for the analysis when high-depth amplicon sequencing is performed, and when the identification of lower variant allele-fraction is necessary.
 The tool allows removal of primers used for the amplification, calling variants in combination with *Samtools* and creating a consensus sequence.
 [iVar Publication](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-018-1618-7)
+
+During the iVar calling, loose thresholds are applied to variant identification in order to increase sensitivity and allow post-calling filtering for refining precision.
+In particular, for the calling:
+
+- allele-fraction threshold = 0.001
+- read depth threshold = 10
+
+In order to call the consensus sequence, based on the calling results, the following criteria are instead applied by default:
+
+- allele-fraction threshold = 0.01
+- read depth threshold = 100
+
+
+**Variant Filters for Reporting**
+
+In order to report the called variants, the following filters are applied on top of the basic calling performed by both LoFreq and iVar:
+
+- allele-fraction threshold = [complete here]
+- minimum alternative allele read depth = [complete here]
+
 
 ### Phylogenetic Analysis
 
