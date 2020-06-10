@@ -453,19 +453,19 @@ process varcall {
   """
 }
 
-//Producing tables with depth at each position - not suitable for large genomes
+//Producing table with depth at each position for all samples - not suitable for large genomes
 process dodepth {
-  publishDir "$params.outdir/alignments/${sampleprefix}", mode: "copy"
+  publishDir "$params.outdir/alignments", mode: "copy"
   label 'process_low'
 
   input:
-  set ( sampleprefix, file(indelqualfile), file(samindexfile) ) from bam_for_depth_ch
+  file("bamfiles/*") from bam_for_depth_ch.toSortedList()
 
   output:
-  set ( sampleprefix, file("${sampleprefix}_samtools.depth") ) into samdepthout
+  file("samtools.depth") into samdepthout
 
   """
-  samtools depth -aa -m 0 $indelqualfile > ${sampleprefix}_samtools.depth
+  samtools depth -H -aa -m 0 bamfiles/*_indelqual.bam > samtools.depth
   """
 }
 
@@ -822,16 +822,14 @@ process mauvemsa {
   tuple file("covid_consensus_alignment.xmfa"), file("covid_consensus_alignment.tree"), file("covid_consensus_alignment.backbone"), file("covid_consensus_alignment.mfa"), file("covid_consensus_all.fa") into mauveout
 
   when:
-  'spades' in tools
+  'spades' in tools | 'all' in tools
 
   """
-  cat $fastaref sampleconsensus/*.consensus.fasta > covid_consensus_all.fa
-  mauveAligner \
-  --output=covid_consensus_alignment.xmfa \
-  --output-guide-tree=covid_consensus_alignment.tree \
-  --backbone-output=covid_consensus_alignment.backbone \
-  --output-alignment=covid_consensus_alignment.mfa \
-  covid_consensus_all.fa
+  progressiveMauve \
+  --output=covid_assembly_alignment.xmfa \
+  --output-guide-tree=covid_alignment.tree \
+  --backbone-output=covid_alignment.backbone \
+  $fastaref samplecontigs/*_contigs.fasta
   """
 }
 
@@ -857,6 +855,9 @@ process Reporting {
   val bamData from bam_for_report_ch.toList()
   tuple file(muscleFastaAln), file(musclePhyiAln), file(muscleTree) from muscle_alignment_ch
   tuple file(aicTree), file(bicTree) from jmodel_trees_ch
+  file(samdepth) from samdepthout
+  file(trimsummary) from trimlogend
+  file(alignmentsummary) from alignmentlogend
 
   output:
   file("analysis_report.html")
@@ -906,7 +907,10 @@ process Reporting {
       aicTree = \\\"$aicTree\\\",
       bicTree = \\\"$bicTree\\\",
       msaFasta = \\\"$muscleFastaAln\\\",
-      msaPhylip = \\\"$musclePhyiAln\\\"
+      msaPhylip = \\\"$musclePhyiAln\\\",
+      samdepthtable = \\\"$samdepth\\\",
+      trimsummarytable = \\\"$trimsummary\\\",
+      alignmentsummarytable = \\\"$alignmentsummary\\\"
       ),
     knit_root_dir=workdir,
     output_dir=workdir)"
