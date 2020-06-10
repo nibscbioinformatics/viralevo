@@ -819,7 +819,7 @@ process mauvemsa {
   file(fastaref) from ch_fasta
 
   output:
-  tuple file("covid_assembly_alignment.xmfa"), file("covid_alignment.tree"), file("covid_alignment.backbone") ) into mauveout
+  tuple ( file("covid_assembly_alignment.xmfa"), file("covid_alignment.tree"), file("covid_alignment.backbone") ) into mauveout
 
   when:
   'spades' in tools | 'all' in tools
