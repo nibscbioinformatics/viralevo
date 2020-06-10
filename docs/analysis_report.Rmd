@@ -177,7 +177,7 @@ save.image("analysis_report.RData")
 
 ### Alignment
 
-The reads are trimmed for sequencing adapters and quality using *Cutadapt*, using the following criteria:
+The reads are trimmed for sequencing adapters and quality using *Cutadapt* [publication](http://journal.embnet.org/index.php/embnetjournal/article/view/200), using the following criteria:
 
 - xxx
 - yyy
