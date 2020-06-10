@@ -35,9 +35,22 @@ opts_chunk$set(message=FALSE, error=FALSE, warning=FALSE, tidy=TRUE, tidy.opts=l
 
 # Introduction
 
-The analysis has been generating with the following steps:
+This pipeline is meant to analyse viral genomes using both reference based and assembly based approaches.
+The reference based approach is however our primary choice, in order to describe all potential mutations at the variant-allele fraction closest to the limit of detection.
 
-TO BE COMPLETED
+In order to achieve the results, reported in this document, we have used the following tools:
+
+## Reference-based approach
+
+We have trimmed the reads, and then aligned them to the provided RefSeq reference. Subsequently, the resulting bam files have been used for variant calling with both a widely used somatic variant caller, as well as with a variant caller specifically developed for amplicon based sequencing and viral evolution analysis.
+The called variants are used to generate consensus sequences.
+The consensus sequences are used to infer phylogeny, analysing them compared to the reference and a number of key genomes selected in advance. The best phylogenetic tree is selected and displayed in the report.
+
+## Assembly-based approach
+
+In this case, the reads are assembled into contigs using a popular tool (*SPADES*), and the contigs produced from each sample are refined and ordered along a reference genome in order to create a draft assembly.
+Each draft assembly is analysed using a whole-genome alignment tool, with the aim of discovering any larger genome rearrangement or structural variants.
+
 
 # Results
 
