@@ -54,7 +54,7 @@ Each draft assembly is analysed using a whole-genome alignment tool, with the ai
 
 # Results
 
-The following results are reported by sample, and have been generated with the procedure described above.
+The following results are reported by sample, and have been generated with the procedure described above. More details about the tools as well as references are provided within the methods section below.
 
 ## Read Based Variant Analysis
 
