@@ -857,6 +857,7 @@ process Reporting {
   val bamData from bam_for_report_ch.toList()
   tuple file(muscleFastaAln), file(musclePhyiAln), file(muscleTree) from muscle_alignment_ch
   tuple file(aicTree), file(bicTree) from jmodel_trees_ch
+  file(treeNames) from aligned_names_ch
 
   output:
   file("analysis_report.html")
@@ -906,7 +907,8 @@ process Reporting {
       aicTree = \\\"$aicTree\\\",
       bicTree = \\\"$bicTree\\\",
       msaFasta = \\\"$muscleFastaAln\\\",
-      msaPhylip = \\\"$musclePhyiAln\\\"
+      msaPhylip = \\\"$musclePhyiAln\\\",
+      treeNames = \\\"$treeNames\\\"
       ),
     knit_root_dir=workdir,
     output_dir=workdir)"
