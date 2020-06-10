@@ -63,6 +63,8 @@ The following results are reported by sample, and have been generated with the p
 ## Trimming Stats
 
 ```{r trimstats}
+library(tidyverse)
+library(ggplot2)
 trimtable <- read.csv(params$trimsummarytable)
 trimtable$Survived <- trimtable$Trimming.Survivor.Read.Pairs
 trimtable$Removed <- trimtable$Total.Read.Pairs.Sequenced - trimtable$Trimming.Survivor.Read.Pairs
@@ -79,11 +81,14 @@ ggplot(data=trimtable, aes(x=Sample.Name, y=ReadPairs, fill=Total)) +
 ### Alignment Stats
 
 ```{r alignstats}
+library(tidyverse)
+library(ggplot2)
 aligntable <- read.csv(params$alignmentsummarytable)
 aligntable$Not_Aligned <- aligntable$Reads_Processed - aligntable$Aligned_Reads
-alignm <- melt(aligntable[,c("Sample_Name","Aligned_Reads","Not_Aligned")], id.vars=1)
-ggplot(alignm, aes(x = Sample_Name, y = value)) +
-  geom_bar(aes(fill = variable), stat = "identity") +
+alignshort <- aligntable[,c("Sample_Name","Aligned_Reads","Not_Aligned")]
+alignm <- gather(alignshort, key="Total", value="ReadPairs", "Aligned_Reads", "Not_Aligned")
+ggplot(alignm, aes(x = Sample_Name, y = ReadPairs)) +
+  geom_bar(aes(fill = Total), stat = "identity") +
   coord_flip() +
   ggtitle("Aligned Reads") +
   xlab("Sample Name") +
