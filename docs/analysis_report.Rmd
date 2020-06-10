@@ -24,6 +24,9 @@ params:
   aicTree: NULL
   msaFasta: NULL
   msaPhylip: NULL
+  samdepthtable: NULL
+  trimsummarytable: NULL
+  alignmentsummarytable: NULL
   treeNames: NULL
 ---
 
@@ -56,6 +59,38 @@ Each draft assembly is analysed using a whole-genome alignment tool, with the ai
 # Results
 
 The following results are reported by sample, and have been generated with the procedure described above. More details about the tools as well as references are provided within the methods section below.
+
+## Trimming Stats
+
+```{r trimstats}
+trimtable <- read.csv(params$trimsummarytable)
+trimtable$Survived <- trimtable$Trimming.Survivor.Read.Pairs
+trimtable$Removed <- trimtable$Total.Read.Pairs.Sequenced - trimtable$Trimming.Survivor.Read.Pairs
+trimtable <- gather(data=trimtable, key="Total", value="ReadPairs", "Survived", "Removed")
+ggplot(data=trimtable, aes(x=Sample.Name, y=ReadPairs, fill=Total)) +
+  geom_bar(stat="identity") +
+  coord_flip() +
+  ggtitle("Trimming Stats") +
+  xlab("Sample name") +
+  ylab("Total read pairs") +
+  labs(fill = "Trimming survival")
+```
+
+### Alignment Stats
+
+```{r alignstats}
+aligntable <- read.csv(params$alignmentsummarytable)
+aligntable$Not_Aligned <- aligntable$Reads_Processed - aligntable$Aligned_Reads
+alignm <- melt(aligntable[,c("Sample_Name","Aligned_Reads","Not_Aligned")], id.vars=1)
+ggplot(alignm, aes(x = Sample_Name, y = value)) +
+  geom_bar(aes(fill = variable), stat = "identity") +
+  coord_flip() +
+  ggtitle("Aligned Reads") +
+  xlab("Sample Name") +
+  ylab("Read Count") +
+  labs(fill = "Alignment Status")
+```
+
 
 ## Read Based Variant Analysis
 

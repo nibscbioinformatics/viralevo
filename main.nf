@@ -453,19 +453,19 @@ process varcall {
   """
 }
 
-//Producing table with depth at each position for all samples - not suitable for large genomes
+//Producing tables with depth at each position - not suitable for large genomes
 process dodepth {
-  publishDir "$params.outdir/alignments", mode: "copy"
+  publishDir "$params.outdir/alignments/${sampleprefix}", mode: "copy"
   label 'process_low'
 
   input:
-  file("bamfiles/*") from bam_for_depth_ch.toSortedList()
+  set ( sampleprefix, file(indelqualfile), file(samindexfile) ) from bam_for_depth_ch
 
   output:
-  file("samtools.depth") into samdepthout
+  set ( sampleprefix, file("${sampleprefix}_samtools.depth") ) into samdepthout
 
   """
-  samtools depth -H -aa -m 0 bamfiles/*_indelqual.bam > samtools.depth
+  samtools depth -aa -m 0 $indelqualfile > ${sampleprefix}_samtools.depth
   """
 }
 
@@ -855,7 +855,6 @@ process Reporting {
   val bamData from bam_for_report_ch.toList()
   tuple file(muscleFastaAln), file(musclePhyiAln), file(muscleTree) from muscle_alignment_ch
   tuple file(aicTree), file(bicTree) from jmodel_trees_ch
-  file(samdepth) from samdepthout
   file(trimsummary) from trimlogend
   file(alignmentsummary) from alignmentlogend
   file(treeNames) from aligned_names_ch
@@ -909,7 +908,6 @@ process Reporting {
       bicTree = \\\"$bicTree\\\",
       msaFasta = \\\"$muscleFastaAln\\\",
       msaPhylip = \\\"$musclePhyiAln\\\",
-      samdepthtable = \\\"$samdepth\\\",
       trimsummarytable = \\\"$trimsummary\\\",
       alignmentsummarytable = \\\"$alignmentsummary\\\",
       treeNames = \\\"$treeNames\\\"
