@@ -149,6 +149,12 @@ msaplot(bic, fasta = params$msaFasta)
 save.image("analysis_report.RData")
 ```
 
+
+# QC of the data
+
+[here the various QC plots from Tom]
+
+
 # Methods
 
 ## Reference Based Analysis
