@@ -442,7 +442,7 @@ process varcall {
   output:
   set ( sampleprefix, file("${sampleprefix}_lofreq.vcf") ) into (finishedcalls, finishedcallsforconsensus)
 
-  when: 'lofreq' in tools
+  when: 'lofreq' in tools | 'all' in tools
 
   """
   lofreq call-parallel \
@@ -480,7 +480,7 @@ process makefilteredcalls {
   set ( sampleprefix, file("${sampleprefix}.filtered.lofreq.vcf") ) into filteredvcf
   tuple val(sampleprefix), val("lofreq"), file("${sampleprefix}.filtered.lofreq.vcf") into lofreq_vcf_ch
 
-  when: 'lofreq' in tools
+  when: 'lofreq' in tools | 'all' in tools
 
   """
   python $baseDir/scripts/filtervcf.py $lofreqout ${sampleprefix}.filtered.lofreq.vcf
@@ -500,7 +500,7 @@ process buildconsensus {
   file("${sampleprefix}.consensus.fasta") into consensusfasta
   tuple val(sampleprefix), val("lofreq"), file("${sampleprefix}_lofreq_consensus.fa") into lofreq_consensus_ch
 
-  when: 'lofreq' in tools
+  when: 'lofreq' in tools | 'all' in tools
 
   """
   bcftools view $vcfin -Oz -o {sampleprefix}.vcf.gz
@@ -535,7 +535,7 @@ process ivarTrimming {
   output:
   tuple val(sampleID), file("${sampleID}_primer_sorted.bam"), file("${sampleID}_primer_sorted.bam.bai") into (primer_trimmed_ch, ivar_prebam_ch)
 
-  when: 'ivar' in tools
+  when: 'ivar' in tools | 'all' in tools
 
   script:
   """
@@ -568,7 +568,7 @@ process ivarCalling {
   tuple val(sampleID), file("${sampleID}_variants.tsv") into ivar_vars_ch
   tuple val(sampleID), val ("ivar"), file("${sampleID}_variants.vcf") into ivar_vcf_ch
 
-  when: 'ivar' in tools
+  when: 'ivar' in tools | 'all' in tools
 
   script:
   """
@@ -599,7 +599,7 @@ process ivarConsensus {
   input:
   tuple val(sampleID), file(bam), file(bai) from ivar_prebam_ch
 
-  when: 'ivar' in tools
+  when: 'ivar' in tools | 'all' in tools
 
   output:
   tuple val(sampleID), val("ivar"), file("${sampleID}_ivar_consensus.fa") into ivar_consensus_ch
@@ -625,10 +625,10 @@ process ivarConsensus {
 
 //Merge the ivar and lofreq output variant calls files into one channel
 mixedvars_ch = Channel.empty()
-if( 'ivar' in tools){
+if( 'ivar' in tools | 'all' in tools ){
   mixedvars_ch = mixedvars_ch.mix(ivar_vars_ch)
 }
-if ('lofreq' in tools){
+if ('lofreq' in tools | 'all' in tools){
   mixedvars_ch = mixedvars_ch.mix(finishedcalls)
 }
 mixedvars_ch = mixedvars_ch.map {it[1]}
@@ -793,7 +793,7 @@ process dospades {
   set ( sampleprefix, file("${sampleprefix}_spades") ) into spadesoutputgeneral
   set ( sampleprefix, file("${sampleprefix}_contigs.fasta") ) into spadescontigs
 
-  when: 'spades' in tools
+  when: 'spades' in tools | 'all' in tools
 
   """
   spades.py -o ${sampleprefix}_spades -1 $forwardfile -2 $reversefile -t ${task.cpus} -m 120 --isolate
