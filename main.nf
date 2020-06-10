@@ -858,6 +858,7 @@ process Reporting {
   file(samdepth) from samdepthout
   file(trimsummary) from trimlogend
   file(alignmentsummary) from alignmentlogend
+  file(treeNames) from aligned_names_ch
 
   output:
   file("analysis_report.html")
@@ -910,7 +911,8 @@ process Reporting {
       msaPhylip = \\\"$musclePhyiAln\\\",
       samdepthtable = \\\"$samdepth\\\",
       trimsummarytable = \\\"$trimsummary\\\",
-      alignmentsummarytable = \\\"$alignmentsummary\\\"
+      alignmentsummarytable = \\\"$alignmentsummary\\\",
+      treeNames = \\\"$treeNames\\\"
       ),
     knit_root_dir=workdir,
     output_dir=workdir)"
