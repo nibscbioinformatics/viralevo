@@ -423,7 +423,7 @@ process doalignmentlog {
 }
 
 //Creating input channel of BAM files for ivar variant calling
-if( 'ivar' in tools ){
+if( 'ivar' in tools | 'all' in tools ){
   (bam_for_call_ch, bam_for_ivar_ch) = bam_for_call_ch.into(2)
 } else {
 bam_for_ivar_ch = Channel.empty()
@@ -681,10 +681,10 @@ process annotate {
 
 //Merge the ivar and lofreq output consensus files into one channel
 mixed_consensus_ch = Channel.empty()
-if( 'ivar' in tools){
+if( 'ivar' in tools | 'all' in tools ){
   mixed_consensus_ch = mixed_consensus_ch.mix(ivar_consensus_ch)
 }
-if ('lofreq' in tools){
+if ('lofreq' in tools | 'all' in tools ){
   mixed_consensus_ch = mixed_consensus_ch.mix(lofreq_consensus_ch)
 }
 mixed_consensus_ch = mixed_consensus_ch.map {it[2]}
