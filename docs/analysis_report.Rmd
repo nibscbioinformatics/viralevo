@@ -42,7 +42,7 @@ opts_chunk$set(message=FALSE, error=FALSE, warning=FALSE, tidy=TRUE, tidy.opts=l
 This pipeline is meant to analyse viral genomes using both reference based and assembly based approaches.
 The reference based approach is however our primary choice, in order to describe all potential mutations at the variant-allele fraction closest to the limit of detection.
 
-In order to achieve the results, reported in this document, we have used the following tools:
+In order to achieve the results reported in this document, we have used the following tools:
 
 ## Reference-based approach
 
@@ -62,6 +62,8 @@ The following results are reported by sample, and have been generated with the p
 
 ### Alignment Stats
 
+Alignment to the reference was performed using BWA and the statistics for SAM flags were assessed using SAMTools. A high proportion of reads aligning to the reference indicates that most of the sequenced material matched to the reference.
+
 ```{r alignstats}
 library(tidyverse)
 library(ggplot2)
@@ -79,6 +81,8 @@ ggplot(alignm, aes(x = Sample_Name, y = ReadPairs)) +
 ```
 
 ## Depth of Coverage
+
+The depth of coverage across all bases on the reference was calculated using SAMTools. Regions with low or no coverage can indicate deletions, alignment artefacts due to repeat regions, and regions which were not sequenced, for example due to amplicon design.
 
 ```{r}
 library(tidyverse)
@@ -225,7 +229,11 @@ save.image("analysis_report.RData")
 
 # QC of the data
 
+We performed QC analysis on the raw sequencing output using FastQC and MultiQC. We provide the output of this in a second summary QC report.
+
 ## Trimming Stats
+
+We performed trimming before the alignment and subsequent analysis using CutAdapt. Adapter sequence and low quality bases were removed from ends of reads, and reads were discarded where they fell below survivor thresholds. A high proportion of reads passing trimming indicates acceptable general sequencing quality for the run.
 
 ```{r trimstats}
 library(tidyverse)
@@ -255,8 +263,7 @@ ggplot(data=trimtable, aes(x=Sample.Name, y=ReadPairs, fill=Total)) +
 
 The reads are trimmed for sequencing adapters and quality using *Cutadapt* [publication](http://journal.embnet.org/index.php/embnetjournal/article/view/200), using the following criteria:
 
-- xxx
-- yyy
+Bases were trimmed from the ends of the reads where the sum of quality scores lay below a running total, using Phred score cutoff 30 (this indicates in general a base having a one in a thousand chance of error). Reads containing any unknown bases (indicated by N in the called sequence) were discarded. Adapter sequences were trimmed from reads using the Illumina Nextera adapter reference, allowing for 0.1 error rate when matching sequence to adapter. Reads were discarded when their length after trimming with this process fell below 50 bases.
 
 Following the trimming, the reads are then aligned to the reference using *bwa-mem* [BWA manuscript](https://arxiv.org/abs/1303.3997), using default settings.
 

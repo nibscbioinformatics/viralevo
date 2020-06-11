@@ -455,8 +455,8 @@ process varcall {
 
 //putting the bam and bai files ready to be handled all together for depth
 (bam_for_depth_ch, bai_for_depth_ch) = for_depth_ch.into(2)
-bam_for_depth_ch = bam_for_depth_ch.map {it[2]}
-bai_for_depth_ch = bai_for_depth_ch.map {it[3]}
+bam_for_depth_ch = bam_for_depth_ch.map {it[1]}
+bai_for_depth_ch = bai_for_depth_ch.map {it[2]}
 
 //Producing table with depth at each position - not suitable for large genomes
 process dodepth {
