@@ -60,24 +60,6 @@ Each draft assembly is analysed using a whole-genome alignment tool, with the ai
 
 The following results are reported by sample, and have been generated with the procedure described above. More details about the tools as well as references are provided within the methods section below.
 
-## Trimming Stats
-
-```{r trimstats}
-library(tidyverse)
-library(ggplot2)
-trimtable <- read.csv(params$trimsummarytable)
-trimtable$Survived <- trimtable$Trimming.Survivor.Read.Pairs
-trimtable$Removed <- trimtable$Total.Read.Pairs.Sequenced - trimtable$Trimming.Survivor.Read.Pairs
-trimtable <- gather(data=trimtable, key="Total", value="ReadPairs", "Survived", "Removed")
-ggplot(data=trimtable, aes(x=Sample.Name, y=ReadPairs, fill=Total)) +
-  geom_bar(stat="identity") +
-  coord_flip() +
-  ggtitle("Trimming Stats") +
-  xlab("Sample name") +
-  ylab("Total read pairs") +
-  labs(fill = "Trimming survival")
-```
-
 ### Alignment Stats
 
 ```{r alignstats}
@@ -94,6 +76,25 @@ ggplot(alignm, aes(x = Sample_Name, y = ReadPairs)) +
   xlab("Sample Name") +
   ylab("Read Count") +
   labs(fill = "Alignment Status")
+```
+
+## Depth of Coverage
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+depthtable <- read.table(params$samdepthtable, header=TRUE)
+depthgathered <- gather(data=depthtable, key="Sample", value="Depth",c(-1,-2))
+ggplot(data=depthgathered)+
+  geom_histogram(mapping=aes(x=Depth))+
+  xlab("Sequencing Depth")+
+  ylab("Count of Bases")+
+  ggtitle("Distribution of Base Depth Values")+
+  facet_wrap(.~Sample)
+
+ggplot(data=depthgathered)+
+  geom_line(mapping=aes(x=Position, y=Depth, col=Sample), size=1)+
+  ggtitle("Depth of Coverage Across Reference NC_045512.2")
 ```
 
 
@@ -224,7 +225,23 @@ save.image("analysis_report.RData")
 
 # QC of the data
 
-[here the various QC plots from Tom]
+## Trimming Stats
+
+```{r trimstats}
+library(tidyverse)
+library(ggplot2)
+trimtable <- read.csv(params$trimsummarytable)
+trimtable$Survived <- trimtable$Trimming.Survivor.Read.Pairs
+trimtable$Removed <- trimtable$Total.Read.Pairs.Sequenced - trimtable$Trimming.Survivor.Read.Pairs
+trimtable <- gather(data=trimtable, key="Total", value="ReadPairs", "Survived", "Removed")
+ggplot(data=trimtable, aes(x=Sample.Name, y=ReadPairs, fill=Total)) +
+  geom_bar(stat="identity") +
+  coord_flip() +
+  ggtitle("Trimming Stats") +
+  xlab("Sample name") +
+  ylab("Total read pairs") +
+  labs(fill = "Trimming survival")
+```
 
 
 # Methods

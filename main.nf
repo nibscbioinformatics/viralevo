@@ -391,7 +391,9 @@ process samtoolsindex {
   set ( sampleprefix, file(indelqualfile) ) from indelqualforindex
 
   output:
-  tuple sampleprefix, file(indelqualfile), file("${indelqualfile}.bai") into (bam_for_call_ch, bam_for_depth_ch, bam_for_report_ch)
+  tuple sampleprefix, file(indelqualfile), file("${indelqualfile}.bai") into (bam_for_call_ch, bam_for_report_ch)
+  file(indelqualfile) into bam_for_depth_ch
+  file("${indelqualfile}.bai") into bai_for_depth_ch
   file("${sampleprefix}_flagstat.out") into flagstatouts
 
   """
@@ -453,19 +455,23 @@ process varcall {
   """
 }
 
-//Producing tables with depth at each position - not suitable for large genomes
+//Producing table with depth at each position - not suitable for large genomes
 process dodepth {
-  publishDir "$params.outdir/alignments/${sampleprefix}", mode: "copy"
+  publishDir "$params.outdir/alignments/", mode: "copy"
   label 'process_low'
 
   input:
-  set ( sampleprefix, file(indelqualfile), file(samindexfile) ) from bam_for_depth_ch
+  file("*.bam") from bam_for_depth_ch.toSortedList()
+  file("*.bai") from bai_for_depth_ch.toSortedList()
 
   output:
-  set ( sampleprefix, file("${sampleprefix}_samtools.depth") ) into samdepthout
+  file ( "merged_samtools.depth") ) into samdepthout
 
   """
-  samtools depth -aa -m 0 $indelqualfile > ${sampleprefix}_samtools.depth
+  bamfiles=`ls *.bam`
+  samtools depth -aa -m 0 \$bamfiles > raw_samtools.depth
+  echo Region Position `echo \$bamfiles | sed 's/_indelqual.bam//g'` > header.txt
+  cat header.txt raw_samtools.depth > merged_samtools.depth
   """
 }
 
@@ -859,6 +865,7 @@ process Reporting {
   file(trimsummary) from trimlogend
   file(alignmentsummary) from alignmentlogend
   file(treeNames) from aligned_names_ch
+  file(samdepth) from samdepthout
 
   output:
   file("analysis_report.html")
@@ -911,6 +918,7 @@ process Reporting {
       msaPhylip = \\\"$musclePhyiAln\\\",
       trimsummarytable = \\\"$trimsummary\\\",
       alignmentsummarytable = \\\"$alignmentsummary\\\",
+      samdepthtable = \\\"$samdepth\\\",
       treeNames = \\\"$treeNames\\\"
       ),
     knit_root_dir=workdir,
