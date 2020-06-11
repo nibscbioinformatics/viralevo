@@ -176,6 +176,7 @@ Due to a convention in the Newick format for phylogenetic trees, the names of th
 Below a correspondence of the leaves names you will see in the following plots and the original sample names.
 
 ```{r namestable, echo=FALSE}
+library(pander)
 pander(tree_samples)
 ```
 
