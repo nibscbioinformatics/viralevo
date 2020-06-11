@@ -465,7 +465,7 @@ process dodepth {
   file("*.bai") from bai_for_depth_ch.toSortedList()
 
   output:
-  file ( "merged_samtools.depth") ) into samdepthout
+  file ( "merged_samtools.depth") into samdepthout
 
   """
   bamfiles=`ls *.bam`
