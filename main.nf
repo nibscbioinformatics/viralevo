@@ -662,6 +662,7 @@ process annotate {
 
   output:
   tuple val(sampleID), val(caller), file("${sampleID}_${caller}_anno.vcf") into annotated_vcf_ch
+  file("${sampleID}_${caller}_raw_anno.vcf")
 
   when: 'lofreq' in tools | 'ivar' in tools | 'all' in tools
 
