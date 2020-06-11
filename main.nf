@@ -461,13 +461,15 @@ process dodepth {
   label 'process_low'
 
   input:
-  file("*.bam") from bam_for_depth_ch.toSortedList()
-  file("*.bai") from bai_for_depth_ch.toSortedList()
+  file("bamfiles/*.bam") from bam_for_depth_ch.toSortedList()
+  file("baifiles/*.bai") from bai_for_depth_ch.toSortedList()
 
   output:
   file ( "merged_samtools.depth") into samdepthout
 
   """
+  ln -s bamfiles/*.bam .
+  ln -s baifiles/*.bai .
   bamfiles=`ls *.bam`
   samtools depth -aa -m 0 \$bamfiles > raw_samtools.depth
   echo Region Position `echo \$bamfiles | sed 's/_indelqual.bam//g'` > header.txt
