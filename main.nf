@@ -391,9 +391,7 @@ process samtoolsindex {
   set ( sampleprefix, file(indelqualfile) ) from indelqualforindex
 
   output:
-  tuple sampleprefix, file(indelqualfile), file("${indelqualfile}.bai") into (bam_for_call_ch, bam_for_report_ch)
-  file(indelqualfile) into bam_for_depth_ch
-  file("${indelqualfile}.bai") into bai_for_depth_ch
+  tuple sampleprefix, file(indelqualfile), file("${indelqualfile}.bai") into (bam_for_call_ch, for_depth_ch, bam_for_report_ch)
   file("${sampleprefix}_flagstat.out") into flagstatouts
 
   """
@@ -455,14 +453,19 @@ process varcall {
   """
 }
 
+//putting the bam and bai files ready to be handled all together for depth
+(bam_for_depth_ch, bai_for_depth_ch) = for_depth_ch.into(2)
+bam_for_depth_ch = bam_for_depth_ch.map {it[2]}
+bai_for_depth_ch = bai_for_depth_ch.map {it[3]}
+
 //Producing table with depth at each position - not suitable for large genomes
 process dodepth {
   publishDir "$params.outdir/alignments/", mode: "copy"
   label 'process_low'
 
   input:
-  file("bamfiles/*.bam") from bam_for_depth_ch.toSortedList()
-  file("baifiles/*.bai") from bai_for_depth_ch.toSortedList()
+  file("bamfiles/*") from bam_for_depth_ch.toSortedList()
+  file("baifiles/*") from bai_for_depth_ch.toSortedList()
 
   output:
   file ( "merged_samtools.depth") into samdepthout
