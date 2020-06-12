@@ -130,7 +130,7 @@ library(tidyverse)
 library(pander)
 vartable <- read.csv(params$varianttable)
 lofreqvars <- filter(vartable, Basic_Pass=="True", Caller=="lofreq")
-lofreqvars <- select(lofreqvars, c("Position","Ref","Alt","Depth","Proportion","Gene"))
+lofreqvars <- select(lofreqvars, c("Sample","Position","Ref","Alt","Depth","Proportion","Gene"))
 pander(lofreqvars)
 ```
 
@@ -140,7 +140,7 @@ We similarly present the results of variant calling by iVar using the same filte
 library(tidyverse)
 library(pander)
 ivarvars <- filter(vartable, Basic_Pass=="True", Caller=="ivar")
-ivarvars <- select(ivarvars, c("Position","Ref","Alt","Depth","Proportion","Gene"))
+ivarvars <- select(ivarvars, c("Sample","Position","Ref","Alt","Depth","Proportion","Gene"))
 pander(ivarvars)
 ```
 
