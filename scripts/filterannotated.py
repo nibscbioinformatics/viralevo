@@ -23,9 +23,10 @@ if caller == "ivar":
             fileout.write(line)
         else:
             collect = line.rstrip().split("\t")
+            truevar = (collect[6]=="TRUE")
             proportion = float(collect[-1].split(":")[-1])
             depth = int(collect[-1].split(":")[3].split(",")[0]) +  int(collect[-1].split(":")[3].split(",")[1])
-            if (proportion >= proportionthreshold) and (depth >= depththreshold):
+            if (proportion >= proportionthreshold) and (depth >= depththreshold) and (truevar):
                 fileout.write(line)
 if caller == "lofreq":
     for line in filein:
@@ -34,8 +35,9 @@ if caller == "lofreq":
         else:
             collect = line.rstrip().split("\t")
             proportion = float(collect[-1].split(";AF=")[1].split(";")[0])
+            truevar = (collect[6]=="PASS")
             depth = int(collect[-1].split("DP=")[1].split(";")[0])
-            if (proportion >= proportionthreshold) and (depth >= depththreshold):
+            if (proportion >= proportionthreshold) and (depth >= depththreshold) and (truevar):
                 fileout.write(line)
 filein.close()
 fileout.close()

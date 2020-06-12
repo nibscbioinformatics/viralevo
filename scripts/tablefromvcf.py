@@ -30,9 +30,10 @@ for infile in infiles:
             position = collect[1]
             ref = collect[3]
             alt = collect[4]
+            truevar = (collect[6]=="PASS")
             depth = collect[7].split("DP=")[1].split(";")[0]
             proportion = collect[7].split(";AF=")[1].split(";")[0]
-            basicpass = (int(depth) >= basicpassreads) and (float(proportion) >= basicpassproportion)
+            basicpass = (int(depth) >= basicpassreads) and (float(proportion) >= basicpassproportion) and (truevar)
             gene = collect[7].split(";ANN=")[1].split("|")[3]
             fileout.write(",".join([samplename,caller,chromosome,position,ref,alt,str(depth),str(proportion),str(basicpass),gene])+"\n")
         filein.close()
@@ -48,9 +49,10 @@ for infile in infiles:
             position = collect[1]
             ref = collect[3]
             alt = collect[4]
+            truevar = (collect[6]=="TRUE")
             depth = int(collect[9].split(":")[3].split(",")[0]) + int(collect[9].split(":")[3].split(",")[1])
             proportion = collect[9].split(":")[4]
-            basicpass = (int(depth) >= basicpassreads) and (float(proportion) >= basicpassproportion)
+            basicpass = (int(depth) >= basicpassreads) and (float(proportion) >= basicpassproportion) and (truevar)
             gene = collect[7].split(";ANN=")[1].split("|")[3]
             fileout.write(",".join([samplename,caller,chromosome,position,ref,alt,str(depth),str(proportion),str(basicpass),gene])+"\n")
         filein.close()
