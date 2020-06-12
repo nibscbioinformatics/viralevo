@@ -158,6 +158,17 @@ for (index in 1:dim(sampleData)[[1]]) {
 
 `r paste(out, collapse = '\n')`
 
+## Table of Variants
+
+```{r}
+vartable <- read.csv(params$varianttable, header=TRUE, row.names=NULL)
+vartable <- distinct(vartable)
+vartable$Ref <- as.character(vartable$Ref)
+vartable$Alt <- as.character(vartable$Alt)
+kable(filter(vartable, Caller=="lofreq")[,3:9]) %>%
+  kable_styling()
+```
+
 
 ## Read Based Consensus Phylogenetic Analysis
 

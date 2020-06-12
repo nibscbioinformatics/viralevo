@@ -871,6 +871,7 @@ process Reporting {
   file(alignmentsummary) from alignmentlogend
   file(treeNames) from aligned_names_ch
   file(samdepth) from samdepthout
+  file(varianttable) from nicetable
 
   output:
   file("analysis_report.html")
@@ -924,6 +925,7 @@ process Reporting {
       trimsummarytable = \\\"$trimsummary\\\",
       alignmentsummarytable = \\\"$alignmentsummary\\\",
       samdepthtable = \\\"$samdepth\\\",
+      varianttable = \\\"$varianttable\\\",
       treeNames = \\\"$treeNames\\\"
       ),
     knit_root_dir=workdir,
