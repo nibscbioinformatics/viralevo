@@ -27,6 +27,7 @@ params:
   samdepthtable: NULL
   trimsummarytable: NULL
   alignmentsummarytable: NULL
+  varianttable: NULL
   treeNames: NULL
 ---
 
