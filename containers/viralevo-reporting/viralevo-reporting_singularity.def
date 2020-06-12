@@ -34,7 +34,7 @@ yum install -y libjpeg-turbo-devel
 ### R packages installations
 mkdir -p /opt/software/rpackages
 cd /opt/software/rpackages
-Rscript -e "install.packages(c('tidyverse', 'pander', 'rmarkdown', 'knitr', 'dt'), repos = 'https://cloud.r-project.org')"
+Rscript -e "install.packages(c('tidyverse', 'pander', 'rmarkdown', 'knitr', 'DT'), repos = 'https://cloud.r-project.org')"
 Rscript -e "install.packages('BiocManager', repos = 'https://cloud.r-project.org')"
 
 ## install unresolved dependencies
