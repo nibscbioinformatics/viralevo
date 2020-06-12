@@ -131,7 +131,8 @@ library(pander)
 vartable <- read.csv(params$varianttable)
 #This has columns: "Sample,Caller,Region,Position,Ref,Alt,Ref_Reads,Alt_Reads,Proportion,Basic_Pass,Gene"
 lofreqvars <- filter(vartable, Basic_Pass=="True", Caller=="lofreq")
-lofreqvars <- lofreqvars[,c("Sample","Position","Ref","Alt","Ref_Reads","Alt_Reads","Proportion","Gene")]
+lofreqvars$Depth <- lofreqvars$Ref_Reads + lofreqvars$Alt_Reads
+lofreqvars <- lofreqvars[,c("Sample","Position","Ref","Alt","Depth","Proportion","Gene")]
 pander(lofreqvars)
 ```
 
@@ -142,7 +143,8 @@ library(tidyverse)
 library(pander)
 vartable <- read.csv(params$varianttable)
 ivarvars <- filter(vartable, Basic_Pass=="True", Caller=="ivar")
-ivarvars <- ivarvars[,c("Sample","Position","Ref","Alt","Ref_Reads","Alt_Reads","Proportion","Gene")]
+ivarvars$Depth <- ivarvars$Ref_Reads + ivarvars$Alt_Reads
+ivarvars <- ivarvars[,c("Sample","Position","Ref","Alt","Depth","Proportion","Gene")]
 pander(ivarvars)
 ```
 
