@@ -114,17 +114,34 @@ for (index in 1:dim(sampleData)[[1]]) {
 
 ## Table of Variants
 
-We provide a full list of variant calls by LoFreq and iVar below, filtered by passing criteria requiring depth of 100 at the position and a variant allele fraction above 5%.
+We provide a full list of variant calls by LoFreq, filtered by passing criteria requiring depth of 100 at the position and a variant allele fraction above 5%.
 
 ```{r}
-library(DT)
+#library(DT)
+#vartable <- read.csv(params$varianttable)
+#lofreqvars <- filter(vartable, Basic_Pass=="True", Caller=="lofreq")
+#lofreqvars <- select(lofreqvars, c("Sample","Region","Position","Ref","Alt","Depth","Proportion","Gene"))
+#datatable(lofreqvars, caption="Table of Passing LoFreq Variant Calls")
+#ivarvars <- filter(vartable, Basic_Pass=="True", Caller=="ivar")
+#ivarvars <- select(ivarvars, c("Sample","Region","Position","Ref","Alt","Depth","Proportion","Gene"))
+#datatable(ivarvars, caption="Table of Passing iVar Variant Calls")
+
+library(tidyverse)
+library(pander)
 vartable <- read.csv(params$varianttable)
 lofreqvars <- filter(vartable, Basic_Pass=="True", Caller=="lofreq")
-lofreqvars <- select(lofreqvars, c("Sample","Region","Position","Ref","Alt","Depth","Proportion","Gene"))
-datatable(lofreqvars, caption="Table of Passing LoFreq Variant Calls")
+lofreqvars <- select(lofreqvars, c("Position","Ref","Alt","Depth","Proportion","Gene"))
+pander(lofreqvars)
+```
+
+We similarly present the results of variant calling by iVar using the same filtering criteria.
+
+```{r}
+library(tidyverse)
+library(pander)
 ivarvars <- filter(vartable, Basic_Pass=="True", Caller=="ivar")
-ivarvars <- select(ivarvars, c("Sample","Region","Position","Ref","Alt","Depth","Proportion","Gene"))
-datatable(ivarvars, caption="Table of Passing iVar Variant Calls")
+ivarvars <- select(ivarvars, c("Position","Ref","Alt","Depth","Proportion","Gene"))
+pander(ivarvars)
 ```
 
 ## Read Based Consensus Phylogenetic Analysis
@@ -261,9 +278,7 @@ ggplot(data=depthgathered)+
 
 # Methods
 
-## Reference Based Analysis
-
-### Alignment
+## Alignment
 
 The reads are trimmed for sequencing adapters and quality using *Cutadapt* [publication](http://journal.embnet.org/index.php/embnetjournal/article/view/200), using the following criteria:
 
@@ -360,3 +375,5 @@ BIC instead of the AIC to calculate BIC differences or BIC weights.
 
 
 ## Assembly Based Analysis
+
+We used the de novo assembly tool Spades to assemble trimmed paired-end sequencing reads. We ran Spades using automated detection of coverage thresholds and other default settings to estimate insert size. We used the isolates flag, as recommended to account for the high coverage viral data. Completed Spades contigs were then aligned by the Progressive Aligner algorithm in Mauve to the reference genome for each assembled sample. We use Mauve to visualise the output alignments to show the ordering and orientation of contigs on the reference and to detect any clear structural rearrangements, deletions and possible non-reference sequence present.
