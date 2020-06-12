@@ -114,7 +114,7 @@ for (index in 1:dim(sampleData)[[1]]) {
 
 ## Table of Variants
 
-We provide a full list of variant calls by LoFreq, filtered by passing criteria requiring depth of 100 at the position and a variant allele fraction above 5%.
+We provide a full list of variant calls by LoFreq, filtered by passing criteria requiring alt supporting read depth of 100 at the position and a variant allele fraction above 1%.
 
 ```{r}
 #library(DT)
@@ -129,8 +129,9 @@ We provide a full list of variant calls by LoFreq, filtered by passing criteria 
 library(tidyverse)
 library(pander)
 vartable <- read.csv(params$varianttable)
+#This has columns: "Sample,Caller,Region,Position,Ref,Alt,Ref_Reads,Alt_Reads,Proportion,Basic_Pass,Gene"
 lofreqvars <- filter(vartable, Basic_Pass=="True", Caller=="lofreq")
-lofreqvars <- lofreqvars[,c("Sample","Position","Ref","Alt","Depth","Proportion","Gene")]
+lofreqvars <- lofreqvars[,c("Sample","Position","Ref","Alt","Ref_Reads","Alt_Reads","Proportion","Gene")]
 pander(lofreqvars)
 ```
 
@@ -139,8 +140,9 @@ We similarly present the results of variant calling by iVar using the same filte
 ```{r}
 library(tidyverse)
 library(pander)
+vartable <- read.csv(params$varianttable)
 ivarvars <- filter(vartable, Basic_Pass=="True", Caller=="ivar")
-ivarvars <- ivarvars[,c("Sample","Position","Ref","Alt","Depth","Proportion","Gene")]
+ivarvars <- ivarvars[,c("Sample","Position","Ref","Alt","Ref_Reads","Alt_Reads","Proportion","Gene")]
 pander(ivarvars)
 ```
 
@@ -290,7 +292,7 @@ Following the trimming, the reads are then aligned to the reference using *bwa-m
 
 **LoFreq Calling**
 
-The tools LoFreq was used as part of the reference-based analysis pipeline. We used the LoFreq utility indelqual to add quality information to indels in alignments in the bam files. We then used SAMTools to index and then LoFreq calling in parallel including indel calling. LoFreq can include a number of spurious variant calls, particularly in high depth sequencing data, and so we have added a pass criteria to subsequent analyses requiring a depth of 100 reads and variant allele read proportion above 5%.
+The tools LoFreq was used as part of the reference-based analysis pipeline. We used the LoFreq utility indelqual to add quality information to indels in alignments in the bam files. We then used SAMTools to index and then LoFreq calling in parallel including indel calling. LoFreq can include a number of spurious variant calls, particularly in high depth sequencing data, and so we have added a pass criteria to subsequent analyses requiring an alt read supporting depth of 100 reads and variant allele read proportion above 1%.
 
 **iVar Calling**
 
@@ -315,8 +317,8 @@ In order to call the consensus sequence, based on the calling results, the follo
 
 In order to report the called variants, the following filters are applied on top of the basic calling performed by both LoFreq and iVar:
 
-- allele-fraction threshold = 0.05
-- minimum read depth = 100
+- allele-fraction threshold = 0.01
+- minimum alt read supporting depth = 100
 
 
 ### Phylogenetic Analysis

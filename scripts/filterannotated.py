@@ -9,8 +9,8 @@ filein = open(sys.argv[1])
 caller = sys.argv[2]
 fileout = open(sys.argv[3], "w")
 
-depththreshold = 100
-proportionthreshold = 0.05
+altdepththreshold = 100
+proportionthreshold = 0.01
 
 #ivar vcf has lines like:
 #NC_045512.2     45      .       G       A       .       FALSE   IVAR_DP=245;IVAR_GFF=NA;IVAR_REFAA=NA;IVAR_ALTAA=NA;ANN=A|intergenic_region|MODIFIER|CHR_START-ORF1ab|CHR_START-GU280_gp01|intergenic_region|CHR_START-GU280_gp01|||n.45G>A||||||       GT:PVAL:AQ:DP:AF        G/A:0.482283:37,32:244,1:0.00408163
@@ -25,8 +25,9 @@ if caller == "ivar":
             collect = line.rstrip().split("\t")
             truevar = (collect[6]=="TRUE")
             proportion = float(collect[-1].split(":")[-1])
-            depth = int(collect[-1].split(":")[3].split(",")[0]) +  int(collect[-1].split(":")[3].split(",")[1])
-            if (proportion >= proportionthreshold) and (depth >= depththreshold) and (truevar):
+            refdepth = collect[-1].split(":")[3].split(",")[0]
+            altdepth = collect[-1].split(":")[3].split(",")[1]
+            if (proportion >= proportionthreshold) and (altdepth >= altdepththreshold) and (truevar):
                 fileout.write(line)
 if caller == "lofreq":
     for line in filein:
@@ -36,8 +37,9 @@ if caller == "lofreq":
             collect = line.rstrip().split("\t")
             proportion = float(collect[-1].split(";AF=")[1].split(";")[0])
             truevar = (collect[6]=="PASS")
-            depth = int(collect[-1].split("DP=")[1].split(";")[0])
-            if (proportion >= proportionthreshold) and (depth >= depththreshold) and (truevar):
+            refdepth = int(collect[-1].split("DP4=")[1].split(";")[0].split(",")[0]) + int(collect[-1].split("DP4=")[1].split(";")[0].split(",")[1])
+            altdepth = int(collect[-1].split("DP4=")[1].split(";")[0].split(",")[2]) + int(collect[-1].split("DP4=")[1].split(";")[0].split(",")[3])
+            if (proportion >= proportionthreshold) and (altdepth >= altdepththreshold) and (truevar):
                 fileout.write(line)
 filein.close()
 fileout.close()
