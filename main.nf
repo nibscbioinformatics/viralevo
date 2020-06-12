@@ -635,32 +635,14 @@ process ivarConsensus {
 }
 
 //Merge the ivar and lofreq output variant calls files into one channel
-mixedvars_ch = Channel.empty()
-if( 'ivar' in tools | 'all' in tools ){
-  mixedvars_ch = mixedvars_ch.mix(ivar_vars_ch)
-}
-if ('lofreq' in tools | 'all' in tools){
-  mixedvars_ch = mixedvars_ch.mix(finishedcalls)
-}
-mixedvars_ch = mixedvars_ch.map {it[1]}
-
-//Make a table for R display of the combined variant calls with filter pass column
-process makevartable {
-  publishDir "$params.outdir/calling/", mode: "copy"
-  label 'process_low'
-
-  input:
-  file "varcalls/*" from mixedvars_ch.toSortedList()
-
-  output:
-  file("varianttable.csv") into nicetable
-
-  when: 'lofreq' in tools | 'ivar' in tools | 'all' in tools
-
-  """
-  python $baseDir/scripts/tablefromvcf.py varcalls varianttable.csv
-  """
-}
+//mixedvars_ch = Channel.empty()
+//if( 'ivar' in tools | 'all' in tools ){
+//  mixedvars_ch = mixedvars_ch.mix(ivar_vars_ch)
+//}
+//if ('lofreq' in tools | 'all' in tools){
+//  mixedvars_ch = mixedvars_ch.mix(finishedcalls)
+//}
+//mixedvars_ch = mixedvars_ch.map {it[1]}
 
 //annotate with snpEff and then filter using criteria 100 depth and 0.05 VAF
 process annotate {
@@ -673,7 +655,7 @@ process annotate {
 
   output:
   tuple val(sampleID), val(caller), file("${sampleID}_${caller}_anno.vcf") into annotated_vcf_ch
-  file("${sampleID}_${caller}_raw_anno.vcf")
+  file("${sampleID}_${caller}_raw_anno.vcf") into annotatedfortable
 
   when: 'lofreq' in tools | 'ivar' in tools | 'all' in tools
 
@@ -681,6 +663,24 @@ process annotate {
   """
   snpEff -ud 1 NC_045512.2 ${vcf} > ${sampleID}_${caller}_raw_anno.vcf
   python $baseDir/scripts/filterannotated.py ${sampleID}_${caller}_raw_anno.vcf $caller ${sampleID}_${caller}_anno.vcf
+  """
+}
+
+//Make a table for R display of the combined variant calls with filter pass column
+process makevartable {
+  publishDir "$params.outdir/calling/", mode: "copy"
+  label 'process_low'
+
+  input:
+  file "varcalls/*" from annotatedfortable.toSortedList()
+
+  output:
+  file("varianttable.csv") into nicetable
+
+  when: 'lofreq' in tools | 'ivar' in tools | 'all' in tools
+
+  """
+  python $baseDir/scripts/tablefromvcf.py varcalls varianttable.csv
   """
 }
 
