@@ -27,7 +27,7 @@ if caller == "ivar":
             proportion = float(collect[-1].split(":")[-1])
             refdepth = collect[-1].split(":")[3].split(",")[0]
             altdepth = collect[-1].split(":")[3].split(",")[1]
-            if (proportion >= proportionthreshold) and (altdepth >= altdepththreshold) and (truevar):
+            if (proportion >= proportionthreshold) and (int(altdepth) >= altdepththreshold) and (truevar):
                 fileout.write(line)
 if caller == "lofreq":
     for line in filein:
@@ -39,7 +39,7 @@ if caller == "lofreq":
             truevar = (collect[6]=="PASS")
             refdepth = int(collect[-1].split("DP4=")[1].split(";")[0].split(",")[0]) + int(collect[-1].split("DP4=")[1].split(";")[0].split(",")[1])
             altdepth = int(collect[-1].split("DP4=")[1].split(";")[0].split(",")[2]) + int(collect[-1].split("DP4=")[1].split(";")[0].split(",")[3])
-            if (proportion >= proportionthreshold) and (altdepth >= altdepththreshold) and (truevar):
+            if (proportion >= proportionthreshold) and (int(altdepth) >= altdepththreshold) and (truevar):
                 fileout.write(line)
 filein.close()
 fileout.close()
