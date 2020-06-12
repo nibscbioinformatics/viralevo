@@ -49,7 +49,7 @@ for infile in infiles:
             ref = collect[3]
             alt = collect[4]
             depth = int(collect[9].split(":")[3].split(",")[0]) + int(collect[9].split(":")[3].split(",")[1])
-            proportion = int(collect[9].split(":")[4]
+            proportion = collect[9].split(":")[4]
             basicpass = (int(depth) >= basicpassreads) and (float(proportion) >= basicpassproportion)
             gene = collect[7].split(";ANN=")[1].split("|")[3]
             fileout.write(",".join([samplename,caller,chromosome,position,ref,alt,str(depth),str(proportion),str(basicpass),gene])+"\n")
