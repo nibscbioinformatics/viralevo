@@ -164,15 +164,14 @@ for (index in 1:dim(sampleData)[[1]]) {
 We provide a full list of variant calls by LoFreq and iVar below, filtered by passing criteria requiring depth of 100 at the position and a variant allele fraction above 5%.
 
 ```{r}
-library(pander)
-vartable <- read.csv(params$varianttable, header=TRUE, row.names=NULL)
-#vartable <- distinct(vartable)
-vartable$Ref <- as.character(vartable$Ref)
-vartable$Alt <- as.character(vartable$Alt)
-pander(filter(vartable, Basic_Pass=="True"))
-
-#kable(filter(vartable, Caller=="lofreq")[,3:9]) %>%
-#  kable_styling()
+library(DT)
+vartable <- read.csv(params$varianttable)
+lofreqvars <- filter(vartable, Basic_Pass=="True", Caller=="lofreq")
+lofreqvars <- select(lofreqvars, c("Sample","Region","Position","Ref","Alt","Depth","Proportion","Gene"))
+datatable(lofreqvars, caption="Table of Passing LoFreq Variant Calls")
+ivarvars <- filter(vartable, Basic_Pass=="True", Caller=="ivar")
+ivarvars <- select(ivarvars, c("Sample","Region","Position","Ref","Alt","Depth","Proportion","Gene"))
+datatable(ivarvars, caption="Table of Passing iVar Variant Calls")
 ```
 
 
