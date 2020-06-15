@@ -441,6 +441,7 @@ process varcall {
 
   output:
   set ( sampleprefix, file("${sampleprefix}_lofreq.vcf") ) into (finishedcalls, finishedcallsforconsensus)
+  tuple val(sampleprefix), val("lofreq"), file("${sampleprefix}_lofreq.vcf") into lofreq_vcf_ch
 
   when: 'lofreq' in tools | 'all' in tools
 
@@ -489,7 +490,6 @@ process makefilteredcalls {
 
   output:
   set ( sampleprefix, file("${sampleprefix}.filtered.lofreq.vcf") ) into filteredvcf
-  tuple val(sampleprefix), val("lofreq"), file("${sampleprefix}.filtered.lofreq.vcf") into lofreq_vcf_ch
 
   when: 'lofreq' in tools | 'all' in tools
 
