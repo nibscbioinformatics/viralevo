@@ -96,6 +96,8 @@ library(Biostrings)
 library(tidyverse)
 library(knitr)
 out = NULL
+vcfList = list()
+varList = list()
 for (index in 1:dim(sampleData)[[1]]) {
   genome <- params$genome
   variants <- file
