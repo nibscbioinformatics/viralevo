@@ -116,17 +116,38 @@ for (index in 1:dim(sampleData)[[1]]) {
 
 ## Table of Variants
 
-We provide a full list of variant calls by LoFreq and iVar below, filtered by passing criteria requiring depth of 100 at the position and a variant allele fraction above 5%.
+We provide a full list of variant calls by LoFreq, filtered by passing criteria requiring alt supporting read depth of 100 at the position and a variant allele fraction above 1%.
 
 ```{r}
-library(DT)
+#library(DT)
+#vartable <- read.csv(params$varianttable)
+#lofreqvars <- filter(vartable, Basic_Pass=="True", Caller=="lofreq")
+#lofreqvars <- select(lofreqvars, c("Sample","Region","Position","Ref","Alt","Depth","Proportion","Gene"))
+#datatable(lofreqvars, caption="Table of Passing LoFreq Variant Calls")
+#ivarvars <- filter(vartable, Basic_Pass=="True", Caller=="ivar")
+#ivarvars <- select(ivarvars, c("Sample","Region","Position","Ref","Alt","Depth","Proportion","Gene"))
+#datatable(ivarvars, caption="Table of Passing iVar Variant Calls")
+
+library(tidyverse)
+library(pander)
 vartable <- read.csv(params$varianttable)
+#This has columns: "Sample,Caller,Region,Position,Ref,Alt,Ref_Reads,Alt_Reads,Proportion,Basic_Pass,Gene"
 lofreqvars <- filter(vartable, Basic_Pass=="True", Caller=="lofreq")
-lofreqvars <- select(lofreqvars, c("Sample","Region","Position","Ref","Alt","Depth","Proportion","Gene"))
-datatable(lofreqvars, caption="Table of Passing LoFreq Variant Calls")
+lofreqvars$Depth <- lofreqvars$Ref_Reads + lofreqvars$Alt_Reads
+lofreqvars <- lofreqvars[,c("Sample","Position","Ref","Alt","Depth","Proportion","Gene")]
+pander(lofreqvars)
+```
+
+We similarly present the results of variant calling by iVar using the same filtering criteria.
+
+```{r}
+library(tidyverse)
+library(pander)
+vartable <- read.csv(params$varianttable)
 ivarvars <- filter(vartable, Basic_Pass=="True", Caller=="ivar")
-ivarvars <- select(ivarvars, c("Sample","Region","Position","Ref","Alt","Depth","Proportion","Gene"))
-datatable(ivarvars, caption="Table of Passing iVar Variant Calls")
+ivarvars$Depth <- ivarvars$Ref_Reads + ivarvars$Alt_Reads
+ivarvars <- ivarvars[,c("Sample","Position","Ref","Alt","Depth","Proportion","Gene")]
+pander(ivarvars)
 ```
 
 ## Read Based Consensus Phylogenetic Analysis
@@ -263,9 +284,7 @@ ggplot(data=depthgathered)+
 
 # Methods
 
-## Reference Based Analysis
-
-### Alignment
+## Alignment
 
 The reads are trimmed for sequencing adapters and quality using *Cutadapt* [publication](http://journal.embnet.org/index.php/embnetjournal/article/view/200), using the following criteria:
 
@@ -277,7 +296,7 @@ Following the trimming, the reads are then aligned to the reference using *bwa-m
 
 **LoFreq Calling**
 
-The tools LoFreq was used as part of the reference-based analysis pipeline. We used the LoFreq utility indelqual to add quality information to indels in alignments in the bam files. We then used SAMTools to index and then LoFreq calling in parallel including indel calling. LoFreq can include a number of spurious variant calls, particularly in high depth sequencing data, and so we have added a pass criteria to subsequent analyses requiring a depth of 100 reads and variant allele read proportion above 5%.
+The tools LoFreq was used as part of the reference-based analysis pipeline. We used the LoFreq utility indelqual to add quality information to indels in alignments in the bam files. We then used SAMTools to index and then LoFreq calling in parallel including indel calling. LoFreq can include a number of spurious variant calls, particularly in high depth sequencing data, and so we have added a pass criteria to subsequent analyses requiring an alt read supporting depth of 100 reads and variant allele read proportion above 1%.
 
 **iVar Calling**
 
@@ -302,8 +321,8 @@ In order to call the consensus sequence, based on the calling results, the follo
 
 In order to report the called variants, the following filters are applied on top of the basic calling performed by both LoFreq and iVar:
 
-- allele-fraction threshold = 0.05
-- minimum read depth = 100
+- allele-fraction threshold = 0.01
+- minimum alt read supporting depth = 100
 
 
 ### Phylogenetic Analysis
@@ -362,3 +381,5 @@ BIC instead of the AIC to calculate BIC differences or BIC weights.
 
 
 ## Assembly Based Analysis
+
+We used the de novo assembly tool Spades to assemble trimmed paired-end sequencing reads. We ran Spades using automated detection of coverage thresholds and other default settings to estimate insert size. We used the isolates flag, as recommended to account for the high coverage viral data. Completed Spades contigs were then aligned by the Progressive Aligner algorithm in Mauve to the reference genome for each assembled sample. We use Mauve to visualise the output alignments to show the ordering and orientation of contigs on the reference and to detect any clear structural rearrangements, deletions and possible non-reference sequence present.
