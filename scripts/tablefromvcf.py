@@ -60,6 +60,8 @@ for infile in infiles:
             if line[0] == "#":
                 vcfout.write(line)
                 continue
+            if len(line.rstrip()) < 1:
+                continue
             collect = line.rstrip().split("\t")
             chromosome = collect[0]
             position = collect[1]
