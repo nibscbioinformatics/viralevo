@@ -14,8 +14,9 @@ params.genome = 'SARS-CoV-2'
 params.adapter = 'https://raw.githubusercontent.com/nibscbioinformatics/testdata/master/covid19/nexteraPE.fasta'
 params.ivar_calling_af_threshold = 0.001
 params.ivar_calling_dp_threshold = 10
-params.ivar_consensus_af_threshold = 0.01
-params.ivar_consensus_dp_threshold = 100
+params.vaf_threshold = 0.01
+params.alt_depth_threshold = 100
+params.annotate = true
 
 def helpMessage() {
     // TODO nf-core: Add to this help message with new command line parameters
@@ -34,16 +35,17 @@ def helpMessage() {
                                     Available: conda, docker, singularity, test, awsbatch, <institute> and more
 
     Options:
-      --genome [str]                  Name of iGenomes reference
-      --single_end [bool]             Specifies that the input is single-end reads
+      --genome [str]                  Name of reference (SARS-CoV-2 or MT299802 to MT299805)
 
     References:                       If not specified in the configuration file or you wish to overwrite any of the references
       --adapter [file]                Path to fasta for adapter sequences to be trimmed
 
     Calling options (with default):
       --ivar_af_threshold [float]     Allele Frequency threshold for calling (default 0.001)
-                                      This applies to both the ivar calling process and also to the ivar consensus
       --ivar_dp_threshold [int]       Minimum depth to call variants or to call consensus (default 10)
+      --vaf_threshold                 Variant Allele Fraction threshold for filtering and consensus sequences (default 0.01)
+      --alt_depth_threshold           Alt allele supporting read threshold for filtering and consensus variants (default 100)
+      --annotate false                Optionally, turn off annotation with SnpEff where database unavailable for genome
 
     Other options:
       --outdir [file]                 The output directory where the results will be saved
@@ -597,52 +599,49 @@ process ivarCalling {
   """
 }
 
-// create a single channel with both variant caller results - if both are run
-vcf_to_annotate_ch = lofreq_vcf_ch.mix(ivar_vcf_ch)
-
-
-process ivarConsensus {
-  label 'process_low'
-  tag "${sampleID}-ivarConsensus"
-
-  publishDir "${params.outdir}/calling/ivar/${sampleID}", mode: 'copy'
-
-  input:
-  tuple val(sampleID), file(bam), file(bai) from ivar_prebam_ch
-
-  when: 'ivar' in tools | 'all' in tools
-
-  output:
-  tuple val(sampleID), val("ivar"), file("${sampleID}_ivar_consensus.fa") into ivar_consensus_ch
-  file("${sampleID}_consensus.qual.txt") into ivar_consensus_qual_ch
-  file("${sampleID}_consensus.fa")
-
-  script:
-  """
-  samtools mpileup -aa -A -d 0 -Q 0 \
-  ${sampleID}_primer_sorted.bam \
-  | ivar consensus \
-  -t ${params.ivar_consensus_af_threshold} \
-  -m ${params.ivar_consensus_dp_threshold} \
-  -p ${sampleID}_consensus
-
-  perl $baseDir/scripts/change_fasta_name.pl \
-  -fasta ${sampleID}_consensus.fa \
-  -name ${sampleID}I \
-  -out ${sampleID}_ivar_consensus.fa
-  """
-
-}
+//Removing this consensus code as we have found bugs in it
+//Instead we will build consensus with bcftools from filtered VCF files
+//process ivarConsensus {
+//  label 'process_low'
+//  tag "${sampleID}-ivarConsensus"
+//  publishDir "${params.outdir}/calling/ivar/${sampleID}", mode: 'copy'
+//
+//  input:
+//  tuple val(sampleID), file(bam), file(bai) from ivar_prebam_ch
+//
+//  when: 'ivar' in tools | 'all' in tools
+//
+//  output:
+//  tuple val(sampleID), val("ivar"), file("${sampleID}_ivar_consensus.fa") into ivar_consensus_ch
+//  file("${sampleID}_consensus.qual.txt") into ivar_consensus_qual_ch
+//  file("${sampleID}_consensus.fa")
+//
+//  script:
+//  """
+//  samtools mpileup -aa -A -d 0 -Q 0 \
+//  ${sampleID}_primer_sorted.bam \
+//  | ivar consensus \
+//  -t ${params.ivar_consensus_af_threshold} \
+//  -m ${params.ivar_consensus_dp_threshold} \
+//  -p ${sampleID}_consensus
+//
+//  perl $baseDir/scripts/change_fasta_name.pl \
+//  -fasta ${sampleID}_consensus.fa \
+//  -name ${sampleID}I \
+//  -out ${sampleID}_ivar_consensus.fa
+//  """
+//}
 
 //Merge the ivar and lofreq output variant calls files into one channel
-//mixedvars_ch = Channel.empty()
-//if( 'ivar' in tools | 'all' in tools ){
-//  mixedvars_ch = mixedvars_ch.mix(ivar_vars_ch)
-//}
-//if ('lofreq' in tools | 'all' in tools){
-//  mixedvars_ch = mixedvars_ch.mix(finishedcalls)
-//}
-//mixedvars_ch = mixedvars_ch.map {it[1]}
+//tuple val(sampleID), val ("ivar"), file("${sampleID}_variants.vcf")
+//tuple val(sampleprefix), val("lofreq"), file("${sampleprefix}_lofreq.vcf")
+mixedvars_ch = Channel.empty()
+if( 'ivar' in tools | 'all' in tools ){
+  mixedvars_ch = mixedvars_ch.mix(ivar_vcf_ch)
+}
+if ('lofreq' in tools | 'all' in tools){
+  mixedvars_ch = mixedvars_ch.mix(lofreq_vcf_ch)
+}
 
 //annotate with snpEff and then filter using criteria 100 depth and 0.05 VAF
 process annotate {
