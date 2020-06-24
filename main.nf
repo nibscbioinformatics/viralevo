@@ -442,7 +442,6 @@ process varcall {
   file( fastafai ) from ch_samtoolsIndex
 
   output:
-  set ( sampleprefix, file("${sampleprefix}_lofreq.vcf") ) into (finishedcalls, finishedcallsforconsensus)
   tuple val(sampleprefix), val("lofreq"), file("${sampleprefix}_lofreq.vcf") into lofreq_vcf_ch
 
   when: 'lofreq' in tools | 'all' in tools
@@ -482,50 +481,6 @@ process dodepth {
   cat header.txt raw_samtools.depth > merged_samtools.depth
   """
 }
-
-//Producing a VCF file with only calls over 50% for the consensus creation
-process makefilteredcalls {
-  label 'process_low'
-
-  input:
-  set ( sampleprefix, file(lofreqout) ) from finishedcallsforconsensus
-
-  output:
-  set ( sampleprefix, file("${sampleprefix}.filtered.lofreq.vcf") ) into filteredvcf
-
-  when: 'lofreq' in tools | 'all' in tools
-
-  """
-  python $baseDir/scripts/filtervcf.py $lofreqout ${sampleprefix}.filtered.lofreq.vcf
-  """
-}
-
-//Creating a consensus fasta sequence using reference and the >50% variant calls
-process buildconsensus {
-  publishDir "$params.outdir/calling/lofreq/${sampleprefix}", mode: "copy"
-  label 'process_low'
-
-  input:
-  set ( sampleprefix, file(vcfin) ) from filteredvcf
-  file ( fastaref ) from ch_fasta
-
-  output:
-  file("${sampleprefix}.consensus.fasta") into consensusfasta
-  tuple val(sampleprefix), val("lofreq"), file("${sampleprefix}_lofreq_consensus.fa") into lofreq_consensus_ch
-
-  when: 'lofreq' in tools | 'all' in tools
-
-  """
-  bcftools view $vcfin -Oz -o {sampleprefix}.vcf.gz
-  bcftools index {sampleprefix}.vcf.gz
-  cat $fastaref | bcftools consensus {sampleprefix}.vcf.gz > ${sampleprefix}.consensus.fasta
-
-  perl $baseDir/scripts/change_fasta_name.pl \
-  -fasta ${sampleprefix}.consensus.fasta \
-  -name ${sampleprefix}L \
-  -out ${sampleprefix}_lofreq_consensus.fa
-  """
-}
 //END OF NIBSC CUTADAPT-BWA-LOFREQ PIPELINE
 
 
@@ -535,9 +490,8 @@ process buildconsensus {
 #############################################################
 https://andersen-lab.github.io/ivar/html/manualpage.html
 */
-
+//ivar step trimming primer sequences
 process ivarTrimming {
-
   label 'process_low'
   tag "${sampleID}-ivarTrimming"
 
@@ -559,13 +513,10 @@ process ivarTrimming {
 
   samtools sort -@ ${task.cpus} -o "${sampleID}_primer_sorted.bam" "${sampleID}_primer_trimmed.bam"
   samtools index -@ ${task.cpus} "${sampleID}_primer_sorted.bam"
-
   """
-
 }
 
-
-
+//ivar variant calling then conversion to VCF
 process ivarCalling {
   label 'process_low'
   tag "${sampleID}-ivar-calling"
@@ -598,39 +549,6 @@ process ivarCalling {
   perl $baseDir/scripts/ivar2vcf.pl --ivar ${sampleID}_variants.tsv --vcf ${sampleID}_ivar.vcf
   """
 }
-
-//Removing this consensus code as we have found bugs in it
-//Instead we will build consensus with bcftools from filtered VCF files
-//process ivarConsensus {
-//  label 'process_low'
-//  tag "${sampleID}-ivarConsensus"
-//  publishDir "${params.outdir}/calling/ivar/${sampleID}", mode: 'copy'
-//
-//  input:
-//  tuple val(sampleID), file(bam), file(bai) from ivar_prebam_ch
-//
-//  when: 'ivar' in tools | 'all' in tools
-//
-//  output:
-//  tuple val(sampleID), val("ivar"), file("${sampleID}_ivar_consensus.fa") into ivar_consensus_ch
-//  file("${sampleID}_consensus.qual.txt") into ivar_consensus_qual_ch
-//  file("${sampleID}_consensus.fa")
-//
-//  script:
-//  """
-//  samtools mpileup -aa -A -d 0 -Q 0 \
-//  ${sampleID}_primer_sorted.bam \
-//  | ivar consensus \
-//  -t ${params.ivar_consensus_af_threshold} \
-//  -m ${params.ivar_consensus_dp_threshold} \
-//  -p ${sampleID}_consensus
-//
-//  perl $baseDir/scripts/change_fasta_name.pl \
-//  -fasta ${sampleID}_consensus.fa \
-//  -name ${sampleID}I \
-//  -out ${sampleID}_ivar_consensus.fa
-//  """
-//}
 
 //Merge the ivar and lofreq output variant calls files into one channel
 mixedvars_ch = Channel.empty()
@@ -691,33 +609,38 @@ process makevartable {
   """
 }
 
-//make a channel with the annotated or unannotated VCF files
-vcftofilter = Channel.empty()
-if (params.annotate) {
-  vcftofilter = vcftofilter.mix(annotatedtofilter) //tuple val(sampleID), val(caller), file("${sampleID}_${caller}_annotated.vcf")
-} else {
-  vcftofilter = vcftofilter.mix(unannotatedtofilter) //tuple val(sampleprefix), val("lofreq"), file("${sampleprefix}_lofreq.vcf")
-}
-
-//filter the either annotated or unannotated VCF files and output ones based on the threshold params
-process filtervcf {
-  publishDir "$params.outdir/calling/$caller/$sampleID", mode: "copy"
-  tag "filtering $caller $sampleID"
-  label 'process_low'
+//Now build a consensus using bcftools from the filtered vcfs
+//Note that filenames must be in correct form as they are used to extract sampleprefix and caller
+process buildconsensus {
+  publishDir "$params.outdir/calling/${caller}/${sampleprefix}", mode: "copy"
+  label 'process_medium'
 
   input:
-  tuple sampleID, caller, file(vcf) from vcftofilter
+  file(vcfin) from filteredvars.flatten() //"${sampleprefix}_${caller}_filtered.vcf"
+  file(fastaref) from ch_fasta
 
   output:
+  tuple val(sampleprefix), val(caller), file("${sampleprefix}_${caller}_consensus.fa") into consensus_ch
+  tuple val(sampleprefix), val(caller), file("${vcfin}") into annotated_vcf_ch
+
+  when: 'lofreq' in tools | 'ivar' in tools | 'all' in tools
 
   script:
+  sampleprefix = (vcfin.name).replace("_lofreq_filtered.vcf","").replace("_ivar_filtered.vcf","")
+  caller = (vcfin.name).repace(sampleprefix+"_","").replace("_filtered.vcf","")
   """
-  python $baseDir/scripts/filterannotated.py $vcf $caller ${sampleID}_${caller}_filtered.vcf
-  """
+  cut -f 1-8 $vcfin > ${sampleprefix}_${caller}.cutup.vcf
+  bcftools view ${sampleprefix}_${caller}.cutup.vcf -Oz -o ${sampleprefix}_${caller}.vcf.gz
+  bcftools index ${sampleprefix}_${caller}.vcf.gz
+  cat $fastaref | bcftools consensus ${sampleprefix}_${caller}.vcf.gz > ${sampleprefix}_${caller}.consensus.fasta
 
+  perl $baseDir/scripts/change_fasta_name.pl \
+  -fasta ${sampleprefix}_${caller}.consensus.fasta \
+  -name ${sampleprefix}L \
+  -out ${sampleprefix}_${caller}_consensus.fa
+  """
 }
 
-//python $baseDir/scripts/filterannotated.py ${sampleID}_${caller}_raw_anno.vcf $caller ${sampleID}_${caller}_anno.vcf
 
 /*
 ####################################################################
@@ -725,19 +648,9 @@ process filtervcf {
 ####################################################################
 */
 
-//Merge the ivar and lofreq output consensus files into one channel
-mixed_consensus_ch = Channel.empty()
-if( 'ivar' in tools | 'all' in tools ){
-  mixed_consensus_ch = mixed_consensus_ch.mix(ivar_consensus_ch)
-}
-if ('lofreq' in tools | 'all' in tools ){
-  mixed_consensus_ch = mixed_consensus_ch.mix(lofreq_consensus_ch)
-}
-mixed_consensus_ch = mixed_consensus_ch.map {it[2]}
-
+mixed_consensus_ch = consensus_ch.map {it[2]}
 
 process MuscleMSA {
-
   publishDir "$params.outdir/phylogenetic/", mode: "copy"
   tag "muscle alignment"
   label 'process_low'
@@ -775,7 +688,6 @@ process MuscleMSA {
   -out muscle_nj-tree.tree \
   -cluster neighborjoining
   """
-
 }
 
 
@@ -825,8 +737,6 @@ process JModelTest {
 ###### ASSEMBLY BASED PIPELINE #### from here ######################
 ####################################################################
 */
-
-
 //Use spades for de novo assembly with isolate flag
 process dospades {
   publishDir "$params.outdir/alignments/${sampleprefix}", mode: "copy"
@@ -847,15 +757,9 @@ process dospades {
   """
 }
 
-
-
 // ### GENOME FINISHING BLOCK GOES FROM here
 
-
-
-
 //THIS NEEDS TO BE MODIFIED IN ORDER TO TAKE INPUT FROM gapfilled genomes
-
 process mauvemsa {
   label 'process_high'
   publishDir "$params.outdir/alignments"

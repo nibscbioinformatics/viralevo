@@ -27,8 +27,10 @@ for infile in infiles:
         filein = open(varcallsdir+"/"+infile)
         caller = "lofreq"
         samplename = infile.replace("_lofreq_annotated.vcf","").replace("_lofreq.vcf","")
+        vcfout = open(samplename+"_"+caller+"_filtered.vcf", "w")
         for line in filein:
             if line[0] == "#":
+                vcfout.write(line)
                 continue
             collect = line.rstrip().split("\t")
             chromosome = collect[0]
@@ -40,18 +42,23 @@ for infile in infiles:
             altdepth = int(collect[-1].split("DP4=")[1].split(";")[0].split(",")[2]) + int(collect[-1].split("DP4=")[1].split(";")[0].split(",")[3])
             proportion = collect[7].split(";AF=")[1].split(";")[0]
             basicpass = (int(altdepth) >= basicpassalt) and (float(proportion) >= basicpassproportion) and (truevar)
+            if basicpass:
+                vcfout.write(line)
             if ("_lofreq_annotated.vcf" in infile):
               gene = collect[7].split(";ANN=")[1].split("|")[3]
             else:
               gene = "NA"
             fileout.write(",".join([samplename,caller,chromosome,position,ref,alt,str(refdepth),str(altdepth),str(proportion),str(basicpass),gene])+"\n")
         filein.close()
+        vcfout.close()
     if ("_ivar_annotated.vcf" in infile) or ("_ivar.vcf" in infile):
         filein = open(varcallsdir+"/"+infile)
         caller = "ivar"
         samplename = infile.replace("_ivar_annotated.vcf","").replace("_ivar.vcf","")
+        vcfout = open(samplename+"_"+caller+"_filtered.vcf", "w")
         for line in filein:
             if line[0] == "#":
+                vcfout.write(line)
                 continue
             collect = line.rstrip().split("\t")
             chromosome = collect[0]
@@ -63,11 +70,14 @@ for infile in infiles:
             altdepth = collect[-1].split(":")[3].split(",")[1]
             proportion = collect[-1].split(":")[4]
             basicpass = (int(altdepth) >= basicpassalt) and (float(proportion) >= basicpassproportion) and (truevar)
+            if basicpass:
+                vcfout.write(line)
             if ("_ivar_annotated.vcf" in infile):
               gene = collect[7].split(";ANN=")[1].split("|")[3]
             else:
               gene = "NA"
             fileout.write(",".join([samplename,caller,chromosome,position,ref,alt,str(refdepth),str(altdepth),str(proportion),str(basicpass),gene])+"\n")
         filein.close()
+        vcfout.close()
 
 fileout.close()
