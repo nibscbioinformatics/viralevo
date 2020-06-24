@@ -17,7 +17,7 @@ params.ivar_calling_af_threshold = 0.001
 params.ivar_calling_dp_threshold = 10
 params.vaf_threshold = 0.01
 params.alt_depth_threshold = 100
-params.annotate = true
+params.noannotation = false
 params.tools = 'all'
 
 def helpMessage() {
@@ -45,9 +45,9 @@ def helpMessage() {
     Calling options (with default):
       --ivar_af_threshold [float]     Allele Frequency threshold for calling (default 0.001)
       --ivar_dp_threshold [int]       Minimum depth to call variants or to call consensus (default 10)
-      --vaf_threshold                 Variant Allele Fraction threshold for filtering and consensus sequences (default 0.01)
-      --alt_depth_threshold           Alt allele supporting read threshold for filtering and consensus variants (default 100)
-      --annotate false                Optionally, turn off annotation with SnpEff where database unavailable for genome
+      --vaf_threshold [float]         Variant Allele Fraction threshold for filtering and consensus sequences (default 0.01)
+      --alt_depth_threshold  [int]    Alt allele supporting read threshold for filtering and consensus variants (default 100)
+      --noannotation                  Optionally, turn off annotation with SnpEff where database unavailable for genome
 
     Other options:
       --outdir [file]                 The output directory where the results will be saved
@@ -149,7 +149,7 @@ summary['Fasta Ref']        = params.fasta
 summary['Annotation file']  = params.anno
 summary['Primer file']      = params.primers
 summary['Tools selected']   = params.tools
-summary['Annotate option']  = params.annotate
+summary['Annotation off']   = params.noannotation
 summary['Max Resources']    = "$params.max_memory memory, $params.max_cpus cpus, $params.max_time time per job"
 if (workflow.containerEngine) summary['Container'] = "$workflow.containerEngine - $workflow.container"
 summary['Output dir']       = params.outdir
@@ -564,7 +564,7 @@ if ('lofreq' in tools | 'all' in tools){
   mixedvars_ch = mixedvars_ch.mix(lofreq_vcf_ch) //tuple val(sampleprefix), val("lofreq"), file("${sampleprefix}_lofreq.vcf")
 }
 
-//annotate with snpEff if requested by default params.annotate = true
+//annotate with snpEff if requested by default params.noannotation = false
 process annotate {
   publishDir "$params.outdir/calling/$caller/$sampleID", mode: "copy"
   tag "snpEff $caller $sampleID"
@@ -576,7 +576,7 @@ process annotate {
   output:
   file("${sampleID}_${caller}_annotated.vcf") into annotatedfortable
 
-  when: ('lofreq' in tools | 'ivar' in tools | 'all' in tools) && (params.annotate)
+  when: ('lofreq' in tools | 'ivar' in tools | 'all' in tools) && (!params.noannotation)
 
   script:
   """
@@ -586,7 +586,7 @@ process annotate {
 
 //take output from annotation or otherwise take unannotated VCF for table generation
 varsfortable = Channel.empty()
-if (params.annotate) {
+if (!params.noannotation) {
   varsfortable = varsfortable.mix(annotatedfortable)
 } else {
   varsfortable = varsfortable.mix( mixedvars_ch.map{it[2]} )
@@ -635,7 +635,8 @@ process buildconsensus {
   caller = ((vcfin.name).replace(sampleprefix+"_","")).replace("_filtered.vcf","")
   """
   cut -f 1-8 $vcfin > ${sampleprefix}_${caller}.cutup.vcf
-  bcftools view ${sampleprefix}_${caller}.cutup.vcf -Oz -o ${sampleprefix}_${caller}.vcf.gz
+  bcftools norm --rm-dup all ${sampleprefix}_${caller}.cutup.vcf > ${sampleprefix}_${caller}.nodups.vcf
+  bcftools view ${sampleprefix}_${caller}.nodups.vcf -Oz -o ${sampleprefix}_${caller}.vcf.gz
   bcftools index ${sampleprefix}_${caller}.vcf.gz
   cat $fastaref | bcftools consensus ${sampleprefix}_${caller}.vcf.gz > ${sampleprefix}_${caller}.consensus.fasta
 
