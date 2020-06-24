@@ -651,7 +651,6 @@ process annotate {
   tuple sampleID, caller, file(vcf) from mixedvars_ch
 
   output:
-  tuple val(sampleID), val(caller), file("${sampleID}_${caller}_annotated.vcf") into annotated_tofilter
   file("${sampleID}_${caller}_annotated.vcf") into annotatedfortable
 
   when: ('lofreq' in tools | 'ivar' in tools | 'all' in tools) && (params.annotate)
@@ -671,6 +670,7 @@ if (params.annotate) {
 }
 
 //Make a table for R display of the combined variant calls with filter pass column
+//Also write out a filtered VCF file for each input VCF file
 //script relies on filenames which must be of the form
 //${sampleID}_${caller}_annotated.vcf or ${sampleID}_ivar.vcf or ${sampleprefix}_lofreq.vcf
 process makevartable {
@@ -678,10 +678,11 @@ process makevartable {
   label 'process_low'
 
   input:
-  file "varcalls/*" from annotatedfortable.toSortedList()
+  file "varcalls/*" from varsfortable.toSortedList()
 
   output:
   file("varianttable.csv") into nicetable
+  file("*_filtered.vcf") into filteredvars
 
   when: 'lofreq' in tools | 'ivar' in tools | 'all' in tools
 
@@ -690,6 +691,31 @@ process makevartable {
   """
 }
 
+//make a channel with the annotated or unannotated VCF files
+vcftofilter = Channel.empty()
+if (params.annotate) {
+  vcftofilter = vcftofilter.mix(annotatedtofilter) //tuple val(sampleID), val(caller), file("${sampleID}_${caller}_annotated.vcf")
+} else {
+  vcftofilter = vcftofilter.mix(unannotatedtofilter) //tuple val(sampleprefix), val("lofreq"), file("${sampleprefix}_lofreq.vcf")
+}
+
+//filter the either annotated or unannotated VCF files and output ones based on the threshold params
+process filtervcf {
+  publishDir "$params.outdir/calling/$caller/$sampleID", mode: "copy"
+  tag "filtering $caller $sampleID"
+  label 'process_low'
+
+  input:
+  tuple sampleID, caller, file(vcf) from vcftofilter
+
+  output:
+
+  script:
+  """
+  python $baseDir/scripts/filterannotated.py $vcf $caller ${sampleID}_${caller}_filtered.vcf
+  """
+
+}
 
 //python $baseDir/scripts/filterannotated.py ${sampleID}_${caller}_raw_anno.vcf $caller ${sampleID}_${caller}_anno.vcf
 
