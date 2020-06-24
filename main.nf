@@ -579,7 +579,7 @@ process ivarCalling {
 
   output:
   tuple val(sampleID), file("${sampleID}_variants.tsv") into ivar_vars_ch
-  tuple val(sampleID), val ("ivar"), file("${sampleID}_variants.vcf") into ivar_vcf_ch
+  tuple val(sampleID), val ("ivar"), file("${sampleID}_ivar.vcf") into ivar_vcf_ch
 
   when: 'ivar' in tools | 'all' in tools
 
@@ -595,7 +595,7 @@ process ivarCalling {
   -r $fasta \
   -g $gff
 
-  perl $baseDir/scripts/ivar2vcf.pl --ivar ${sampleID}_variants.tsv --vcf ${sampleID}_variants.vcf
+  perl $baseDir/scripts/ivar2vcf.pl --ivar ${sampleID}_variants.tsv --vcf ${sampleID}_ivar.vcf
   """
 }
 
@@ -633,39 +633,46 @@ process ivarCalling {
 //}
 
 //Merge the ivar and lofreq output variant calls files into one channel
-//tuple val(sampleID), val ("ivar"), file("${sampleID}_variants.vcf")
-//tuple val(sampleprefix), val("lofreq"), file("${sampleprefix}_lofreq.vcf")
 mixedvars_ch = Channel.empty()
 if( 'ivar' in tools | 'all' in tools ){
-  mixedvars_ch = mixedvars_ch.mix(ivar_vcf_ch)
+  mixedvars_ch = mixedvars_ch.mix(ivar_vcf_ch) //tuple val(sampleID), val ("ivar"), file("${sampleID}_ivar.vcf")
 }
 if ('lofreq' in tools | 'all' in tools){
-  mixedvars_ch = mixedvars_ch.mix(lofreq_vcf_ch)
+  mixedvars_ch = mixedvars_ch.mix(lofreq_vcf_ch) //tuple val(sampleprefix), val("lofreq"), file("${sampleprefix}_lofreq.vcf")
 }
 
-//annotate with snpEff and then filter using criteria 100 depth and 0.05 VAF
+//annotate with snpEff if requested by default params.annotate = true
 process annotate {
   publishDir "$params.outdir/calling/$caller/$sampleID", mode: "copy"
   tag "snpEff $caller $sampleID"
   label 'process_low'
 
   input:
-  tuple sampleID, caller, file(vcf) from vcf_to_annotate_ch
+  tuple sampleID, caller, file(vcf) from mixedvars_ch
 
   output:
-  tuple val(sampleID), val(caller), file("${sampleID}_${caller}_anno.vcf") into annotated_vcf_ch
-  file("${sampleID}_${caller}_raw_anno.vcf") into annotatedfortable
+  tuple val(sampleID), val(caller), file("${sampleID}_${caller}_annotated.vcf") into annotated_tofilter
+  file("${sampleID}_${caller}_annotated.vcf") into annotatedfortable
 
-  when: 'lofreq' in tools | 'ivar' in tools | 'all' in tools
+  when: ('lofreq' in tools | 'ivar' in tools | 'all' in tools) && (params.annotate)
 
   script:
   """
-  snpEff -ud 1 NC_045512.2 ${vcf} > ${sampleID}_${caller}_raw_anno.vcf
-  python $baseDir/scripts/filterannotated.py ${sampleID}_${caller}_raw_anno.vcf $caller ${sampleID}_${caller}_anno.vcf
+  snpEff -ud 1 NC_045512.2 ${vcf} > ${sampleID}_${caller}_annotated.vcf
   """
 }
 
+//take output from annotation or otherwise take unannotated VCF for table generation
+varsfortable = Channel.empty()
+if (params.annotate) {
+  varsfortable = varsfortable.mix(annotatedfortable)
+} else {
+  varsfortable = varsfortable.mix( mixedvars_ch.map{it[2]} )
+}
+
 //Make a table for R display of the combined variant calls with filter pass column
+//script relies on filenames which must be of the form
+//${sampleID}_${caller}_annotated.vcf or ${sampleID}_ivar.vcf or ${sampleprefix}_lofreq.vcf
 process makevartable {
   publishDir "$params.outdir/calling/", mode: "copy"
   label 'process_low'
@@ -679,10 +686,12 @@ process makevartable {
   when: 'lofreq' in tools | 'ivar' in tools | 'all' in tools
 
   """
-  python $baseDir/scripts/tablefromvcf.py varcalls varianttable.csv
+  python $baseDir/scripts/tablefromvcf.py varcalls varianttable.csv ${params.alt_depth_threshold} ${params.vaf_threshold}
   """
 }
 
+
+//python $baseDir/scripts/filterannotated.py ${sampleID}_${caller}_raw_anno.vcf $caller ${sampleID}_${caller}_anno.vcf
 
 /*
 ####################################################################

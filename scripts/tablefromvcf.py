@@ -1,4 +1,9 @@
-#This is a script to read annotated VCF files from lofreq and from ivar and extract the variants from them into a nice joint table
+#This is a script to read possibly annotated VCF files from lofreq and from ivar and extract the variants from them into a nice joint table
+#script relies on filenames which must be of the form
+#annotated files:
+#${sampleID}_${caller}_annotated.vcf
+#unannotated ivar and lofreq files:
+#${sampleID}_ivar.vcf or ${sampleprefix}_lofreq.vcf
 
 import sys
 import os
@@ -7,8 +12,8 @@ varcallsdir = sys.argv[1]
 infiles = os.listdir(varcallsdir)
 fileout = open(sys.argv[2], "w")
 
-basicpassalt = 100
-basicpassproportion = 0.01
+basicpassalt = sys.argv[3] #100
+basicpassproportion = sys.argv[4] #0.01
 
 #ivar vcf has lines like:
 #NC_045512.2     45      .       G       A       .       FALSE   IVAR_DP=245;IVAR_GFF=NA;IVAR_REFAA=NA;IVAR_ALTAA=NA;ANN=A|intergenic_region|MODIFIER|CHR_START-ORF1ab|CHR_START-GU280_gp01|intergenic_region|CHR_START-GU280_gp01|||n.45G>A||||||       GT:PVAL:AQ:DP:AF        G/A:0.482283:37,32:244,1:0.00408163
@@ -18,10 +23,10 @@ basicpassproportion = 0.01
 fileout.write("Sample,Caller,Region,Position,Ref,Alt,Ref_Reads,Alt_Reads,Proportion,Basic_Pass,Gene\n")
 
 for infile in infiles:
-    if "_lofreq_raw_anno.vcf" in infile:
+    if ("_lofreq_annotated.vcf" in infile) or ("_lofreq.vcf" in infile):
         filein = open(varcallsdir+"/"+infile)
         caller = "lofreq"
-        samplename = infile.replace("_lofreq_raw_anno.vcf","")
+        samplename = infile.replace("_lofreq_annotated.vcf","").replace("_lofreq.vcf","")
         for line in filein:
             if line[0] == "#":
                 continue
@@ -35,13 +40,16 @@ for infile in infiles:
             altdepth = int(collect[-1].split("DP4=")[1].split(";")[0].split(",")[2]) + int(collect[-1].split("DP4=")[1].split(";")[0].split(",")[3])
             proportion = collect[7].split(";AF=")[1].split(";")[0]
             basicpass = (int(altdepth) >= basicpassalt) and (float(proportion) >= basicpassproportion) and (truevar)
-            gene = collect[7].split(";ANN=")[1].split("|")[3]
+            if ("_lofreq_annotated.vcf" in infile):
+              gene = collect[7].split(";ANN=")[1].split("|")[3]
+            else:
+              gene = "NA"
             fileout.write(",".join([samplename,caller,chromosome,position,ref,alt,str(refdepth),str(altdepth),str(proportion),str(basicpass),gene])+"\n")
         filein.close()
-    if "_ivar_raw_anno.vcf" in infile:
+    if ("_ivar_annotated.vcf" in infile) or ("_ivar.vcf" in infile):
         filein = open(varcallsdir+"/"+infile)
         caller = "ivar"
-        samplename = infile.replace("_ivar_raw_anno.vcf","")
+        samplename = infile.replace("_ivar_annotated.vcf","").replace("_ivar.vcf","")
         for line in filein:
             if line[0] == "#":
                 continue
@@ -53,9 +61,12 @@ for infile in infiles:
             truevar = (collect[6]=="TRUE")
             refdepth = collect[-1].split(":")[3].split(",")[0]
             altdepth = collect[-1].split(":")[3].split(",")[1]
-            proportion = collect[9].split(":")[4]
+            proportion = collect[-1].split(":")[4]
             basicpass = (int(altdepth) >= basicpassalt) and (float(proportion) >= basicpassproportion) and (truevar)
-            gene = collect[7].split(";ANN=")[1].split("|")[3]
+            if ("_ivar_annotated.vcf" in infile):
+              gene = collect[7].split(";ANN=")[1].split("|")[3]
+            else:
+              gene = "NA"
             fileout.write(",".join([samplename,caller,chromosome,position,ref,alt,str(refdepth),str(altdepth),str(proportion),str(basicpass),gene])+"\n")
         filein.close()
 
