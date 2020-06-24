@@ -807,9 +807,9 @@ process Reporting {
   label 'reporting'
 
   input:
-  val vcfData from annotated_vcf_ch.toList()
+  val vcfData from annotated_vcf_ch.toSortedList()
   file(rmodel) from ch_genome_rmodel
-  val bamData from bam_for_report_ch.toList()
+  val bamData from bam_for_report_ch.toSortedList()
   tuple file(muscleFastaAln), file(musclePhyiAln), file(muscleTree) from muscle_alignment_ch
   tuple file(aicTree), file(bicTree) from jmodel_trees_ch
   file(trimsummary) from trimlogend
@@ -871,7 +871,8 @@ process Reporting {
       alignmentsummarytable = \\\"$alignmentsummary\\\",
       samdepthtable = \\\"$samdepth\\\",
       varianttable = \\\"$varianttable\\\",
-      treeNames = \\\"$treeNames\\\"
+      treeNames = \\\"$treeNames\\\",
+      noannotation = \\\"${params.noannotation}\\\"
       ),
     knit_root_dir=workdir,
     output_dir=workdir)"

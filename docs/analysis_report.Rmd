@@ -29,6 +29,7 @@ params:
   alignmentsummarytable: NULL
   varianttable: NULL
   treeNames: NULL
+  noannotation: NULL
 ---
 
 ```{r, echo=FALSE, message=FALSE, error=FALSE, warning=FALSE}
