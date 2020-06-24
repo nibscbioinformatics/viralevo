@@ -563,6 +563,7 @@ if( 'ivar' in tools | 'all' in tools ){
 if ('lofreq' in tools | 'all' in tools){
   mixedvars_ch = mixedvars_ch.mix(lofreq_vcf_ch) //tuple val(sampleprefix), val("lofreq"), file("${sampleprefix}_lofreq.vcf")
 }
+(mixedvars_toanno, mixedvars_noanno) = mixedvars_ch.into(2)
 
 //annotate with snpEff if requested by default params.noannotation = false
 process annotate {
@@ -571,7 +572,7 @@ process annotate {
   label 'process_low'
 
   input:
-  tuple sampleID, caller, file(vcf) from mixedvars_ch
+  tuple sampleID, caller, file(vcf) from mixedvars_toanno
 
   output:
   file("${sampleID}_${caller}_annotated.vcf") into annotatedfortable
@@ -589,7 +590,7 @@ varsfortable = Channel.empty()
 if (!params.noannotation) {
   varsfortable = varsfortable.mix(annotatedfortable)
 } else {
-  varsfortable = varsfortable.mix( mixedvars_ch.map{it[2]} )
+  varsfortable = varsfortable.mix( mixedvars_noanno.map{it[2]} )
 }
 
 //Make a table for R display of the combined variant calls with filter pass column
