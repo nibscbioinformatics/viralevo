@@ -12,11 +12,13 @@
 // ######### DEFAULT PARAMS SETTINGS ##########################
 params.genome = 'SARS-CoV-2'
 params.adapter = 'https://raw.githubusercontent.com/nibscbioinformatics/testdata/master/covid19/nexteraPE.fasta'
+params.primers = 'https://raw.githubusercontent.com/nibscbioinformatics/testdata/master/covid19/test_primers.bed'
 params.ivar_calling_af_threshold = 0.001
 params.ivar_calling_dp_threshold = 10
 params.vaf_threshold = 0.01
 params.alt_depth_threshold = 100
 params.annotate = true
+params.tools = 'all'
 
 def helpMessage() {
     // TODO nf-core: Add to this help message with new command line parameters
@@ -145,6 +147,9 @@ summary['Input']            = params.input
 summary['Genome']           = params.genome
 summary['Fasta Ref']        = params.fasta
 summary['Annotation file']  = params.anno
+summary['Primer file']      = params.primers
+summary['Tools selected']   = params.tools
+summary['Annotate option']  = params.annotate
 summary['Max Resources']    = "$params.max_memory memory, $params.max_cpus cpus, $params.max_time time per job"
 if (workflow.containerEngine) summary['Container'] = "$workflow.containerEngine - $workflow.container"
 summary['Output dir']       = params.outdir
@@ -626,8 +631,8 @@ process buildconsensus {
   when: 'lofreq' in tools | 'ivar' in tools | 'all' in tools
 
   script:
-  sampleprefix = (vcfin.name).replace("_lofreq_filtered.vcf","").replace("_ivar_filtered.vcf","")
-  caller = (vcfin.name).repace(sampleprefix+"_","").replace("_filtered.vcf","")
+  sampleprefix = ((vcfin.name).replace("_lofreq_filtered.vcf","")).replace("_ivar_filtered.vcf","")
+  caller = ((vcfin.name).replace(sampleprefix+"_","")).replace("_filtered.vcf","")
   """
   cut -f 1-8 $vcfin > ${sampleprefix}_${caller}.cutup.vcf
   bcftools view ${sampleprefix}_${caller}.cutup.vcf -Oz -o ${sampleprefix}_${caller}.vcf.gz
