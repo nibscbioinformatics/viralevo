@@ -10,7 +10,9 @@ options(ucscChromosomeNames=FALSE)
 
 source(paste0(baseDir,"/scripts/parseSnpEff.R"))
 vcf <- readVcf(vcffile, genome = genome)
-vcf <- parseSnpEff(vcf)
+if (noannotation == "false") {
+  vcf <- parseSnpEff(vcf)
+}
 vars <- rowRanges(vcf)
 
 elementMetadata(vars) <- cbind(info(vcf), elementMetadata(vcf))
