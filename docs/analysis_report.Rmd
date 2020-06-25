@@ -101,6 +101,7 @@ vcfList = list()
 varList = list()
 for (index in 1:dim(sampleData)[[1]]) {
   genome <- params$genome
+  noannotation <- toString(params$noannotation)
   variants <- file
   model <- params$genemodel
   sample <- sampleData[index,]$sample
