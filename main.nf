@@ -12,7 +12,7 @@
 // ######### DEFAULT PARAMS SETTINGS ##########################
 params.genome = 'SARS-CoV-2'
 params.adapter = 'https://raw.githubusercontent.com/nibscbioinformatics/testdata/master/covid19/nexteraPE.fasta'
-params.primers = 'https://raw.githubusercontent.com/nibscbioinformatics/testdata/master/covid19/test_primers.bed'
+params.primers = 'https://raw.githubusercontent.com/nibscbioinformatics/testdata/master/covid19/nibsc_primers_correct.bed'
 params.ivar_calling_af_threshold = 0.001
 params.ivar_calling_dp_threshold = 10
 params.vaf_threshold = 0.01

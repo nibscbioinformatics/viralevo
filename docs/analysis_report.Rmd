@@ -50,7 +50,7 @@ The consensus sequences are used to infer phylogeny, analysing them compared to 
 
 ## Assembly-based approach
 
-In this case, the reads are assembled into contigs using a popular tool (*SPADES*), and the contigs produced from each sample are refined and ordered along a reference genome in order to create a draft assembly.
+In this case, the reads are assembled into contigs using a popular tool (*SPADES*), and the contigs produced from each sample are ordered along a reference genome in order to create a draft assembly.
 Each draft assembly is analysed using whole-genome alignment tool Mauve, with the aim of discovering any larger genome rearrangement or structural variants.
 
 # Results
@@ -288,17 +288,17 @@ ggplot(data=depthgathered)+
 
 ## Alignment
 
-The reads are trimmed for sequencing adapters and quality using *Cutadapt* [publication](http://journal.embnet.org/index.php/embnetjournal/article/view/200), using the following criteria:
+The reads were trimmed for sequencing adapters and quality using *Cutadapt* [publication](http://journal.embnet.org/index.php/embnetjournal/article/view/200), using the following criteria:
 
 Bases were trimmed from the ends of the reads where the sum of quality scores lay below a running total, using Phred score cutoff 30 (this indicates in general a base having a one in a thousand chance of error). Reads containing any unknown bases (indicated by N in the called sequence) were discarded. Adapter sequences were trimmed from reads using the Illumina Nextera adapter reference, allowing for 0.1 error rate when matching sequence to adapter. Reads were discarded when their length after trimming with this process fell below 50 bases.
 
-Following the trimming, the reads are then aligned to the reference using *bwa-mem* [BWA manuscript](https://arxiv.org/abs/1303.3997), using default settings.
+Following the trimming, the reads were then aligned to the reference using *bwa-mem* [BWA manuscript](https://arxiv.org/abs/1303.3997), using default settings.
 
 ### Variant Calling and Filtering
 
 **LoFreq Calling**
 
-The tools LoFreq was used as part of the reference-based analysis pipeline. We used the LoFreq utility indelqual to add quality information to indels in alignments in the bam files. We then used SAMTools to index and then LoFreq calling in parallel including indel calling. LoFreq can include a number of spurious variant calls, particularly in high depth sequencing data, and so we have added a pass criteria to subsequent analyses requiring an alt read supporting depth of 100 reads and variant allele read proportion above 1%.
+The tool LoFreq was used as part of the reference-based analysis pipeline. We used the LoFreq utility indelqual to add quality information to indels in alignments in the bam files. We then used SAMTools to index and then LoFreq calling in parallel including indel calling. LoFreq can include a number of spurious variant calls, particularly in high depth sequencing data, and so we have added a pass criteria to subsequent analyses requiring an alt read supporting depth of 100 reads and variant allele read proportion above 1%.
 
 **iVar Calling**
 
@@ -333,54 +333,26 @@ In order to report the called variants, the following filters are applied on top
 
 Once consensus sequences have been generated from the variant calling pipelines, the FASTA files are aligned all together using MUSCLE.
 
-MUSCLE is a tool originally developed for creating multiple alignments of protein sequences. Elements of the algorithm include fast distance estimation using kmer counting, progressive alignment using a new profile function we call the log-expectation score, and refinement using tree-dependent restricted partitioning.
+MUSCLE is a tool originally developed for creating multiple alignments of protein sequences. MUSCLE first constructs a tree of the sequences with distance estimation, initially using kmer counting. A progressive alignment is performed following the branching of the tree. These two processes are then repeated until the alignment has been refined.
 It produces alignments of competitive accuracy compared to other methods and emits results in several different formats: characteristics we found useful in the context of this pipeline.
 [MUSCLE paper](https://pubmed.ncbi.nlm.nih.gov/15034147/)
 
 **Computation of multiple trees**
 
-In order to carry out the best tree computation and an unbiased selection of the most informative tree, we have used jModelTest2. jModelTest is a tool to carry out statistical selection of best-fit models of nucleotide substitution. It implements five different model selection strategies: hierarchical and dynamical likelihood ratio tests (hLRT and dLRT),
-Akaike and Bayesian information criteria (AIC and BIC), and a decision theory method (DT). It also provides
-estimates of model selection uncertainty, parameter importance and model-averaged parameter estimates, including model-averaged tree topologies.
+In order to carry out the best tree computation and an unbiased selection of the most informative tree, we have used jModelTest2. jModelTest is a popular tool for selecting optimal trees using multiple competing models of base substitutions.
+We selected the Akaike and Bayesian information criteria (AIC and BIC), as the measures with which to select best base substitution models. jModelTest also provides other information on the output trees, indicating the confidence in the models used.
 
 In order to compute the trees we have used the following substitution schemes: JC/F81, K80/HKY, SYM/GTR.
 
 Then, the tree topology has been defined as the best among the Nearest Neighbour Interchange and the Subtree Pruning and Regrafting with a Maximum-Likelihood search.[jModelTest2 publication](https://www.nature.com/articles/nmeth.2109)
 
 
-**Selection of the best tree**
+**Selection of base substitution model**
 
-The Akaike information criterion (AIC, [Akaike, 1974] is an asymptotically unbiased estimator of the Kullback-
-Leibler information quantity [S. Kullback, 1951]. We can think of the AIC as the amount of information lost
-when we use a specific model to approximate the real process of molecular evolution. Therefore, the model
-with the smallest AIC is preferred.
+As a complete substitution rate matrix may not be feasible to optimise, jModelTest2 tests among models restricting this variation, such as assuming a ratio of transitions to transversions. To select the best of these models, we use the Akaike Information Criterion and the Bayesian Information Criterion.
 
-The AIC is computed as:
-
-$AIC = -2l + 2k$
-
-where l is the maximum log-likelihood value of the data under this model and Ki is the number of free
-parameters in the model, including branch lengths if they were estimated de novo. When sample size (n) is
-small compared to the number of parameters (say, nK < 40) the use of a second order AIC, AICc [Hurvich and
-Tsai, 1989; Sugiura, 1978], is recommended:
-
-$AIC_{c} = AIC + {(2k(k+1)) / (n-k-1)}$
-
-The AIC compares several candidate models simultaneously, it can be used to compare both nested and
-non-nested models, and model-selection uncertainty can be easily quantified using the AIC differences and
-Akaike weights (see Model uncertainty below). Burnham and Anderson [2003] provide an excellent introduction
-to the AIC and model selection in general.
-
-
-An alternative to the use of the AIC is the Bayesian Information Criterion (BIC) [Schwarz, 1978]:
-
-$BIC = -2l + klog(n)$
-
-Given equal priors for all competing models, choosing the model with the smallest BIC is equivalent to
-selecting the model with the maximum posterior probability. Alternatively, Bayes factors for models of molecular
-evolution can be calculated using reversible jump MCMC [Huelsenbeck et al., 2004]. We can easily use the
-BIC instead of the AIC to calculate BIC differences or BIC weights.
-
+The AIC is computed by subtracting the maximum log-likelihood value of the data with this model from the number of free parameters given. A low AIC indicates that better approximation to the real model with few parameters risking overfitting.
+As an alternative, the BIC is calculated with the number of samples included as a factor. The model with the smalled BIC has the maximum posterior probability, assuming priors for the models are equal.
 
 ## Assembly Based Analysis
 
