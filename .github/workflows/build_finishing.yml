@@ -1,4 +1,4 @@
-name: Docker Build & Push - Reporting
+name: Docker Build & Push - Finishing
 
 on:
   push:
@@ -14,8 +14,8 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USER }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-          repository: nibscbioinformatics/viralevo-reporting
+          repository: nibscbioinformatics/viralevo-genomefinish
           tags: dev-git
-          path: ./containers/viralevo-reporting
+          path: ./containers/viralevo-genomefinish
           always_pull: false
           push: true
