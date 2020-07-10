@@ -56,7 +56,7 @@ NXF_OPTS='-Xms1g -Xmx4g'
 The typical command for running the pipeline is as follows:
 
 ```bash
-nextflow run nibscbioinformatics/viralevo --reads '*_R{1,2}.fastq.gz' -profile docker
+nextflow run nibscbioinformatics/viralevo --input path_to_file -profile docker
 ```
 
 This will launch the pipeline with the `docker` configuration profile. See below for more information about profiles.
