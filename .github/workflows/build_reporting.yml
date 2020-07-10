@@ -1,0 +1,13 @@
+- name: Build and push Docker images
+  uses: docker/build-push-action@v1.1.0
+  on:
+  push:
+    branches: [ dev ]
+  with:
+    username: ${{ secrets.DOCKER_USER }}
+    password: ${{ secrets.DOCKER_TOKEN }}
+    repository: nibscbioinformatics/viralevo-reporting
+    tags: dev-git
+    path: /containers/viralevo-reporting
+    always_pull: false
+    push: true
