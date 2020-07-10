@@ -16,6 +16,6 @@ jobs:
           password: ${{ secrets.DOCKER_TOKEN }}
           repository: nibscbioinformatics/viralevo-reporting
           tags: dev-git
-          path: ./tree/dev/containers/viralevo-reporting
+          path: ./containers/viralevo-reporting
           always_pull: false
           push: true
