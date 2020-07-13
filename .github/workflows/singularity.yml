@@ -12,7 +12,7 @@ jobs:
       - name: convert singularity
         run: |
           echo "########### SETTING CONTAINER UP"
-          docker run -d -t --name singenv -v "$(pwd)":/work nibscbioinformatics/singularityenv:dev-git
+          docker run --privileged -d -t --name singenv -v "$(pwd)":/work nibscbioinformatics/singularityenv:dev-git
           echo "########### --- container up and running -------------"
           echo "########### BUILDING SINGULARITY CONTAINER"
           docker exec -u root -w /work singenv singularity build singenv.sif docker://nibscbioinformatics/singularityenv:dev-git
