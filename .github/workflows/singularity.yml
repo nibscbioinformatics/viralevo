@@ -1,4 +1,4 @@
-name: Singularity Convertion
+name: Singularity Conversion
 
 on:
   push:
@@ -11,6 +11,11 @@ jobs:
       - uses: actions/checkout@v1
       - name: convert singularity
         run: |
+          echo "########### SETTING CONTAINER UP"
           docker run -d -t --name singenv -v "$(pwd)":/work nibscbioinformatics/singularityenv:dev-git
+          echo "########### --- container up and running -------------"
+          echo "########### BUILDING SINGULARITY CONTAINER"
           docker exec -w /work singenv singularity build singenv.sif docker://nibscbioinformatics/singularityenv:dev-git
+          echo "########### --- container built done -------------"
+          echo "########### RUNNING TEST ON CONTAINER"
           docker exec -w /work singenv singularity exec singenv.sif Rscript -e "library(ggtree)"
