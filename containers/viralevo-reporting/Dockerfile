@@ -17,6 +17,9 @@ RUN conda env create -f /environment.yml && conda clean -a
 # Add conda installation dir to PATH (instead of doing 'conda activate')
 ENV PATH /usr/local/envs/viralevo-reporting/bin:$PATH
 
+# Install library apparently now missing for ape
+RUN apt-get install -y libgomp1
+
 # Add separately some R packages
 RUN Rscript -e "install.packages(c('gt', 'pander'), repos = 'https://cloud.r-project.org')"
 RUN Rscript -e "install.packages('BiocManager', repos = 'https://cloud.r-project.org')"
