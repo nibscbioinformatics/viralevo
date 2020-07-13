@@ -15,7 +15,7 @@ jobs:
           docker run --privileged -d -t --name singenv -v "$(pwd)":/work nibscbioinformatics/singularityenv:dev-git
           echo "########### --- container up and running -------------"
           echo "########### BUILDING SINGULARITY CONTAINER"
-          docker exec -u root -w /work singenv singularity build singenv.sif docker://nibscbioinformatics/singularityenv:dev-git
+          docker exec -u root -w /work singenv singularity build singenv.sif docker://nibscbioinformatics/viralevo-reporting:dev-git
           echo "########### --- container built done -------------"
           echo "########### RUNNING TEST ON CONTAINER"
           docker exec -u root -w /work singenv singularity exec singenv.sif Rscript -e "library(ggtree)"
