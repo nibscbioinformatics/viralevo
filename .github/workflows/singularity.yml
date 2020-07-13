@@ -1,0 +1,17 @@
+name: Docker Build & Push - Finishing
+
+on:
+  push:
+    branches: [ dev ]
+
+jobs:
+  convert:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: convert singularity
+        run: |
+          docker run -d -it --name singenv -v "$(pwd)":/work nibscbioinformatics/singularityenv:dev-git
+          docker exec -it -w /work singenv singularity build singenv.sif docker://nibscbioinformatics/singularityenv:dev-git
+          docker exec -it -w /work singenv singularity exec singenv.sif Rscript -e "library(ggtree)"
+          
