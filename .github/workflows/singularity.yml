@@ -19,18 +19,21 @@ jobs:
           echo "########### BUILDING SINGULARITY CONTAINER"
           docker exec -u root -w /work singenv singularity build viralevo-reporting-dev-git.sif docker://nibscbioinformatics/viralevo-reporting:dev-git
           echo "########### --- container built done -------------"
+      - name: Save Reporting
+        uses: actions/upload-artifact@v1
+        with:
+          name: container
+          path: viralevo-reporting-dev-git.sif
       - name: Convert Finishing
         run: |
           echo "########### BUILDING SINGULARITY CONTAINER"
           docker exec -u root -w /work singenv singularity build viralevo-genomefinish-dev-git.sif docker://nibscbioinformatics/viralevo-genomefinish:dev-git
           echo "########### --- container built done -------------"
-      - name: Save Containers
+      - name: Save Finishing
         uses: actions/upload-artifact@v1
         with:
           name: container
-          path: |
-            viralevo-reporting-dev-git.sif
-            viralevo-genomefinish-dev-git.sif
+          path: viralevo-genomefinish-dev-git.sif
 
 
   azupload:
