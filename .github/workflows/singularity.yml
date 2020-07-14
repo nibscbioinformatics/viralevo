@@ -35,14 +35,14 @@ jobs:
           name: container
       - name: Upload to Azure Bucket
         run: |
-        echo "########### SETTING CLI CONTAINER UP"
-        docker run -d -t --name azurecli -v "$(pwd)":/work mcr.microsoft.com/azure-cli
-        echo "########### --- container up and running -------------"
-        echo "########### UPLOADING FILE into Blob Storage"
-        docker exec -w /work azurecli az storage blob upload \
-        --auth-mode key \
-        --account-name ${{ secrets.AZ_ACCOUNT_NAME }} \
-        --account-key ${{ secrets.AZ_STORAGE_KEY }} \
-        --container-name containers \
-        --name singenv_dev-git.sif \
-        --file ./container/singenv.sif
+          echo "########### SETTING CLI CONTAINER UP"
+          docker run -d -t --name azurecli -v "$(pwd)":/work mcr.microsoft.com/azure-cli
+          echo "########### --- container up and running -------------"
+          echo "########### UPLOADING FILE into Blob Storage"
+          docker exec -w /work azurecli az storage blob upload \
+          --auth-mode key \
+          --account-name ${{ secrets.AZ_ACCOUNT_NAME }} \
+          --account-key ${{ secrets.AZ_STORAGE_KEY }} \
+          --container-name containers \
+          --name singenv_dev-git.sif \
+          --file ./container/singenv.sif
