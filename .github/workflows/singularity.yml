@@ -9,32 +9,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
-      - name: Convert Reporting
+      - name: Starting container
         run: |
           echo "########### SETTING CONTAINER UP"
           docker run --privileged -d -t --name singenv -v "$(pwd)":/work nibscbioinformatics/singularityenv:dev-git
           echo "########### --- container up and running -------------"
+      - name: Convert Reporting
+        run: |
           echo "########### BUILDING SINGULARITY CONTAINER"
           docker exec -u root -w /work singenv singularity build viralevo-reporting-dev-git.sif docker://nibscbioinformatics/viralevo-reporting:dev-git
           echo "########### --- container built done -------------"
-      - name: Save Reporting
-        uses: actions/upload-artifact@v1
-        with:
-          name: container
-          path: viralevo-reporting-dev-git.sif
       - name: Convert Finishing
         run: |
-          echo "########### SETTING CONTAINER UP"
-          docker run --privileged -d -t --name singenv -v "$(pwd)":/work nibscbioinformatics/singularityenv:dev-git
-          echo "########### --- container up and running -------------"
           echo "########### BUILDING SINGULARITY CONTAINER"
           docker exec -u root -w /work singenv singularity build viralevo-genomefinish-dev-git.sif docker://nibscbioinformatics/viralevo-genomefinish:dev-git
           echo "########### --- container built done -------------"
-      - name: Save Finishing
+      - name: Save Containers
         uses: actions/upload-artifact@v1
         with:
           name: container
-          path: viralevo-genomefinish-dev-git.sif
+          path: *.sif
+
 
   azupload:
     runs-on: ubuntu-latest
