@@ -28,7 +28,9 @@ jobs:
         uses: actions/upload-artifact@v1
         with:
           name: container
-          path: *.sif
+          path: |
+            viralevo-reporting-dev-git.sif
+            viralevo-genomefinish-dev-git.sif
 
 
   azupload:
