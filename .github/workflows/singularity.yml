@@ -34,9 +34,15 @@ jobs:
         with:
           name: container
       - name: Upload to Azure Bucket
-        uses: bacongobbler/azure-blob-storage-upload@v1.1.1
-        with:
-          source_dir: 'container'
-          container_name: containers
-          connection_string: ${{ secrets.AZCONNECTIONSTRING }}
-          sync: false
+        run: |
+        echo "########### SETTING CLI CONTAINER UP"
+        docker run -d -t --name azurecli -v "$(pwd)":/work microsoft/azure-cli
+        echo "########### --- container up and running -------------"
+        echo "########### UPLOADING FILE into Blob Storage"
+        docker exec -w /work azurecli az storage blob upload \
+        --auth-mode key \
+        --account-name ${{ secrets.AZ_ACCOUNT_NAME }} \
+        --account-key ${{ secrets.AZ_STORAGE_KEY }} \
+        --container-name containers \
+        --name singenv_dev-git.sif \
+        --file ./container/singenv.sif
