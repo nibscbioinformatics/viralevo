@@ -44,11 +44,13 @@ jobs:
         uses: actions/download-artifact@v1
         with:
           name: container
-      - name: Upload Reporting to Azure Bucket
+      - name: Starting container Az CLI
         run: |
           echo "########### SETTING CLI CONTAINER UP"
           docker run -d -t --name azurecli -v "$(pwd)":/work mcr.microsoft.com/azure-cli
           echo "########### --- container up and running -------------"
+      - name: Upload Reporting to Azure Bucket
+        run: |
           echo "########### UPLOADING FILE into Blob Storage"
           docker exec -w /work azurecli az storage blob upload \
           --auth-mode key \
@@ -59,9 +61,6 @@ jobs:
           --file ./container/viralevo-reporting-dev-git.sif
       - name: Upload Finishing to Azure Bucket
         run: |
-          echo "########### SETTING CLI CONTAINER UP"
-          docker run -d -t --name azurecli -v "$(pwd)":/work mcr.microsoft.com/azure-cli
-          echo "########### --- container up and running -------------"
           echo "########### UPLOADING FILE into Blob Storage"
           docker exec -w /work azurecli az storage blob upload \
           --auth-mode key \
