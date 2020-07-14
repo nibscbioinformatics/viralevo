@@ -36,7 +36,7 @@ jobs:
       - name: Upload to Azure Bucket
         run: |
         echo "########### SETTING CLI CONTAINER UP"
-        docker run -d -t --name azurecli -v "$(pwd)":/work microsoft/azure-cli
+        docker run -d -t --name azurecli -v "$(pwd)":/work mcr.microsoft.com/azure-cli
         echo "########### --- container up and running -------------"
         echo "########### UPLOADING FILE into Blob Storage"
         docker exec -w /work azurecli az storage blob upload \
