@@ -19,3 +19,24 @@ jobs:
           echo "########### --- container built done -------------"
           echo "########### RUNNING TEST ON CONTAINER"
           docker exec -u root -w /work singenv singularity exec singenv.sif Rscript -e "library(ggtree)"
+      - name: Save container
+        uses: actions/upload-artifact@v1
+        with:
+          name: container
+          path: singenv.sif
+  azupload:
+      runs-on: ubuntu-latest
+      needs: convert
+      steps:
+        - name: Download container
+          uses: actions/download-artifact@v1
+          with:
+            name: container
+        - name: Upload to Azure Bucket
+          uses: bacongobbler/azure-blob-storage-upload@v1.1.1
+          with:
+            source_dir: .
+            container_name: containers
+            connection_string: ${{ secrets.AZCONNECTIONSTRING }}
+            extra_args: '--pattern *.sif'
+            sync: false
