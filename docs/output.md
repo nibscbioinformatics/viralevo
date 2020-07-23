@@ -1,8 +1,6 @@
 # nibscbioinformatics/viralevo: Output
 
-This document describes the output produced by the pipeline. Most of the plots are taken from the MultiQC report, which summarises results at the end of the pipeline.
-
-<!-- TODO nf-core: Write this documentation describing your workflow's output -->
+This document describes the output produced by the pipeline. Results are reported in the generated HTML file analysis_report.html and QC information is presented in a MultiQC report.
 
 ## Pipeline overview
 
