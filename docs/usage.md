@@ -56,19 +56,32 @@ NXF_OPTS='-Xms1g -Xmx4g'
 The typical command for running the pipeline is as follows:
 
 ```bash
-nextflow run nibscbioinformatics/viralevo --input path_to_file -profile docker
+nextflow run nibscbioinformatics/viralevo -profile nibsc --outdir /output/folder --tools all --genome SARS-CoV-2 --input /path/to/sampleinfo.tsv
 ```
 
-This will launch the pipeline with the `docker` configuration profile. See below for more information about profiles.
+The pipeline requires an input TSV file giving sample information. Each sample is represented by a single row, and the columns consist of sample name, location of forward reads fastq.gz file, location of reverse reads fastq.gz file.
 
-Note that the pipeline will create the following files in your working directory:
+The test profile contains example input data and can be launched with:
 
 ```bash
-work            # Directory containing the nextflow working files
-results         # Finished results (configurable, see below)
-.nextflow_log   # Log file from Nextflow
-# Other nextflow hidden files, eg. history of pipeline runs and old logs.
+nextflow run nibscbioinformatics/viralevo -profile test,nibsc --outdir /output/folder
 ```
+
+This will launch the pipeline with the `nibsc` configuration profile. See below for more information about profiles.
+
+Note that the pipeline will create the following files under the specified /output/folder:
+
+* [alignments] - contains the depth table, and a subfolder for each sample containing aligned BAM files, consensus sequence and a SPADES output folder with de novo assembly files
+* [calling] - contains variant caller output from LoFreq and iVar as well as an aggregate variant table
+* [fastqc] - contains output from FastQC
+* [MultiQC] - contains the MultiQC report
+* [phylogenetic] - contains MUSCLE and jModelTest output files
+* [pipeline_info] - automatically generated pipeline information
+* [reports] - contains the analysis report
+* [stats] - contains tables summarising alignment and trimming logs
+
+* [work] - unless otherwise specified with -w /my/work/folder this will be placed in the working directory, and contain Nextflow working files from the run
+* [.nextflow_log] - Log file from Nextflow
 
 ### Updating the pipeline
 

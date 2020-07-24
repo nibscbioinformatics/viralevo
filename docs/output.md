@@ -32,4 +32,5 @@ On running the pipeline, users must specify a root output directory, with --outd
 * [pipeline_info] - automatically generated pipeline information
 * [reports] - contains the analysis report
 * [stats] - contains tables summarising alignment and trimming logs
-* [work] - unless otherwise specified with -w /my/work/folder this will contain Nextflow working files from the run
+
+* [work] - unless otherwise specified with -w /my/work/folder this will be placed in the working directory, and contain Nextflow working files from the run
