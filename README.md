@@ -18,6 +18,8 @@
 
 ## Introduction
 
+The ViralEvo pipeline is designed to characterise viral samples, and particularly SARS-CoV-2, from short read sequencing data.
+
 The pipeline is built using [Nextflow](https://www.nextflow.io), a workflow tool to run tasks across multiple compute infrastructures in a very portable manner. It comes with docker containers making installation trivial and results highly reproducible.
 
 ## Quick Start
@@ -29,17 +31,13 @@ ii. Install either [`Docker`](https://docs.docker.com/engine/installation/) or [
 iii. Download the pipeline and test it on a minimal dataset with a single command
 
 ```bash
-nextflow run nibscbioinformatics/viralevo -profile test,<docker/singularity/conda/institute>
+nextflow run nibscbioinformatics/viralevo -profile test,nibsc --outdir /output/folder
 ```
-
-> Please check [nf-core/configs](https://github.com/nf-core/configs#documentation) to see if a custom config file to run nf-core pipelines already exists for your Institute. If so, you can simply use `-profile <institute>` in your command. This will enable either `docker` or `singularity` and set the appropriate execution settings for your local compute environment.
 
 iv. Start running your own analysis!
 
-<!-- TODO nf-core: Update the default command above used to run the pipeline -->
-
 ```bash
-nextflow run nibscbioinformatics/viralevo -profile <docker/singularity/conda/institute> --reads '*_R{1,2}.fastq.gz' --genome GRCh37
+nextflow run nibscbioinformatics/viralevo -profile nibsc --outdir /output/folder --tools all --genome SARS-CoV-2 --input /path/to/sampleinfo.tsv
 ```
 
 See [usage docs](docs/usage.md) for all of the available options when running the pipeline.
