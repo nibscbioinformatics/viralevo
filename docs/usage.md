@@ -49,26 +49,37 @@ It is recommended to limit the Nextflow Java virtual machines memory. We recomme
 NXF_OPTS='-Xms1g -Xmx4g'
 ```
 
-<!-- TODO nf-core: Document required command line parameters to run the pipeline-->
-
 ## Running the pipeline
 
 The typical command for running the pipeline is as follows:
 
 ```bash
-nextflow run nibscbioinformatics/viralevo --input path_to_file -profile docker
+nextflow run nibscbioinformatics/viralevo -profile nibsc --outdir /output/folder --tools all --genome SARS-CoV-2 --input /path/to/sampleinfo.tsv
 ```
 
-This will launch the pipeline with the `docker` configuration profile. See below for more information about profiles.
+The pipeline requires an input TSV file giving sample information. Each sample is represented by a single row, and the columns consist of sample name, location of forward reads fastq.gz file, location of reverse reads fastq.gz file.
 
-Note that the pipeline will create the following files in your working directory:
+The test profile contains example input data and can be launched with:
 
 ```bash
-work            # Directory containing the nextflow working files
-results         # Finished results (configurable, see below)
-.nextflow_log   # Log file from Nextflow
-# Other nextflow hidden files, eg. history of pipeline runs and old logs.
+nextflow run nibscbioinformatics/viralevo -profile test,nibsc --outdir /output/folder
 ```
+
+This will launch the pipeline with the `nibsc` configuration profile. See below for more information about profiles.
+
+Note that the pipeline will create the following files under the specified /output/folder:
+
+* [alignments] - contains the depth table, and a subfolder for each sample containing aligned BAM files, consensus sequence and a SPADES output folder with de novo assembly files
+* [calling] - contains variant caller output from LoFreq and iVar as well as an aggregate variant table
+* [fastqc] - contains output from FastQC
+* [MultiQC] - contains the MultiQC report
+* [phylogenetic] - contains MUSCLE and jModelTest output files
+* [pipeline_info] - automatically generated pipeline information
+* [reports] - contains the analysis report
+* [stats] - contains tables summarising alignment and trimming logs
+
+* [work] - unless otherwise specified with -w /my/work/folder this will be placed in the working directory, and contain Nextflow working files from the run
+* [.nextflow_log] - Log file from Nextflow
 
 ### Updating the pipeline
 
@@ -86,6 +97,10 @@ It's a good idea to specify a pipeline version when running the pipeline on your
 First, go to the [nibscbioinformatics/viralevo releases page](https://github.com/nibscbioinformatics/viralevo/releases) and find the latest version number - numeric only (eg. `1.3.1`). Then specify this when running the pipeline with `-r` (one hyphen) - eg. `-r 1.3.1`.
 
 This version number will be logged in reports when you run the pipeline, so that you'll know what you used when you look back in the future.
+
+## Output report
+
+The key product of the pipeline is the analysis report generated under reports/analysis_report.html. This is automatically generated using R markdown based on the output from earlier steps in the pipeline. The key sections include Gviz plots giving the positions of variant calls and depth of coverage, phylogenetic trees, and QC and alignment assessments.
 
 ## Main arguments
 
@@ -117,86 +132,71 @@ If `-profile` is not specified, the pipeline will run locally and expect all sof
 * `test`
   * A profile with a complete configuration for automated testing
   * Includes links to test data so needs no other parameters
+* `nibsc`
+  * A profile set up to use the NIBSC SLURM environment with Singularity
+  * Recommended for use at NIBSC
 
 <!-- TODO nf-core: Document required command line parameters -->
 
-### `--reads`
+### `--input`
 
-Use this to specify the location of your input FastQ files. For example:
-
-```bash
---reads 'path/to/data/sample_*_{1,2}.fastq'
-```
-
-Please note the following requirements:
-
-1. The path must be enclosed in quotes
-2. The path must have at least one `*` wildcard character
-3. When using the pipeline with paired end data, the path must use `{1,2}` notation to specify read pairs.
-
-If left unspecified, a default pattern is used: `data/*{1,2}.fastq.gz`
-
-### `--single_end`
-
-By default, the pipeline expects paired-end data. If you have single-end data, you need to specify `--single_end` on the command line when you launch the pipeline. A normal glob pattern, enclosed in quotation marks, can then be used for `--reads`. For example:
+Use this to specify the location of your input file data. A TSV file must be provided with columns giving sample name, forward fastq.gz reads, reverse fastq.gz reads respectively:
 
 ```bash
---single_end --reads '*.fastq'
+--input 'https://raw.githubusercontent.com/nibscbioinformatics/testdata/master/covid19/samples.tsv'
 ```
 
-It is not possible to run a mixture of single-end and paired-end files in one run.
+As an example for this file, the test profile input file contains the following lines:
 
-## Reference genomes
+SRR11494468 https://github.com/nibscbioinformatics/testdata/raw/master/covid19/SRR11494468_1.fastq.gz	https://github.com/nibscbioinformatics/testdata/raw/master/covid19/SRR11494468_2.fastq.gz
+SRR11494508	https://github.com/nibscbioinformatics/testdata/raw/master/covid19/SRR11494508_1.fastq.gz	https://github.com/nibscbioinformatics/testdata/raw/master/covid19/SRR11494508_2.fastq.gz
+SRR11577895	https://github.com/nibscbioinformatics/testdata/raw/master/covid19/SRR11577895_1.fastq.gz	https://github.com/nibscbioinformatics/testdata/raw/master/covid19/SRR11577895_2.fastq.gz
 
-The pipeline config files come bundled with paths to the illumina iGenomes reference index files. If running with docker or AWS, the configuration is set up to use the [AWS-iGenomes](https://ewels.github.io/AWS-iGenomes/) resource.
+## Reference genomes `--genome`
 
-### `--genome` (using iGenomes)
-
-There are 31 different species supported in the iGenomes references. To run the pipeline, you must specify which to use with the `--genome` flag.
-
-You can find the keys to specify the genomes in the [iGenomes config file](../conf/igenomes.config). Common genomes that are supported are:
-
-* Human
-  * `--genome GRCh37`
-* Mouse
-  * `--genome GRCm38`
-* _Drosophila_
-  * `--genome BDGP6`
-* _S. cerevisiae_
-  * `--genome 'R64-1-1'`
-
-> There are numerous others - check the config file for more.
-
-Note that you can use the same configuration setup to save sets of reference files for your own use, even if they are not part of the iGenomes resource. See the [Nextflow documentation](https://www.nextflow.io/docs/latest/config.html) for instructions on where to save such a file.
-
-The syntax for this reference configuration is as follows:
-
-<!-- TODO nf-core: Update reference genome example according to what is needed -->
-
-```nextflow
-params {
-  genomes {
-    'GRCh37' {
-      fasta   = '<path to the genome fasta file>' // Used if no star index given
-    }
-    // Any number of additional genomes, key is used with --genome
-  }
-}
-```
-
-<!-- TODO nf-core: Describe reference path flags -->
-
-### `--fasta`
-
-If you prefer, you can specify the full path to your reference genome when you run the pipeline:
+The pipeline config files provide information on standard genomes for alignment, which are given in the file viralref.config. If you wish to use a reference genome not provided here, you must add it to this config file. To select a reference when running the pipeline, use the following:
 
 ```bash
---fasta '[path to Fasta reference]'
+--genome 'SARS-CoV-2'
 ```
 
-### `--igenomes_ignore`
+The viralref.config file specifies other annotation data for each given genome. The Gviz code used in the automatic report generation relies on definition of an R object containing a genome model. If adding a new custom genome, this must be first generated and then specified in the viralref.config file. The following R code may be modified and used to generate a genome model, depending on specifics of the features that are required to be extracted:
 
-Do not load `igenomes.config` when running the pipeline. You may choose this option if you observe clashes between custom parameters and those supplied in `igenomes.config`.
+```R
+library(tidyr)
+library(dplyr)
+library(Gviz)
+library(VariantAnnotation)
+library(GenomicFeatures)
+library(rtracklayer)
+library(Biostrings)
+library(stringr)
+covid_gff_data <- as.data.frame(readGFF("construct.gff3")[-c(1),])
+covid_gff_data$gene <- str_replace(covid_gff_data$Note, "similar to ","")
+covidgr <- GRanges(covid_gff_data$seqid,
+  IRanges(
+    start = covid_gff_data$start,
+    end = covid_gff_data$end
+  ),
+  strand = covid_gff_data$strand
+)
+elementMetadata(covidgr) <- covid_gff_data[c("type", "ID", "gene")]
+saveRDS(covidgr, "construct.rds")
+```
+
+## Other parameters
+
+The pipeline has several other parameters that are usually fixed but may be adjusted when running by a user.
+
+--adapter [file]                Path to fasta for adapter sequences to be trimmed
+
+Calling options (with default):
+
+--ivar_af_threshold [float]     Allele Frequency threshold for calling (default 0.001)
+--ivar_dp_threshold [int]       Minimum depth to call variants or to call consensus (default 10)
+--vaf_threshold [float]         Variant Allele Fraction threshold for filtering and consensus sequences (default 0.01)
+--alt_depth_threshold  [int]    Alt allele supporting read threshold for filtering and consensus variants (default 100)
+--noannotation                  Optionally, turn off annotation with SnpEff where database unavailable for genome
 
 ## Job resources
 
