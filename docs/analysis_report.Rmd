@@ -1,0 +1,356 @@
+---
+title: "Viral Genomes Analysis"
+author: "Francesco Lescai and Thomas Bleazard"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    theme: readable
+    highlight: tango
+    toc: true
+    toc_float: true
+    css: nibsc_report.css
+editor_options:
+  chunk_output_type: console
+params:
+  vcf: NULL
+  callers: NULL
+  samples: NULL
+  genome: NULL
+  genemodel: NULL
+  baseDir: NULL
+  bamSamples: NULL
+  bamFiles: NULL
+  bicTree: NULL
+  aicTree: NULL
+  msaFasta: NULL
+  msaPhylip: NULL
+  samdepthtable: NULL
+  trimsummarytable: NULL
+  alignmentsummarytable: NULL
+  varianttable: NULL
+  treeNames: NULL
+  noannotation: NULL
+---
+
+```{r, echo=FALSE, message=FALSE, error=FALSE, warning=FALSE}
+library(knitr)
+opts_chunk$set(message=FALSE, error=FALSE, warning=FALSE, tidy=TRUE, tidy.opts=list(blank=FALSE), cache=TRUE, cache.lazy = FALSE, echo = FALSE,  results = 'asis', fig.pos='H', fig.wide=TRUE)
+```
+
+# Introduction
+
+This pipeline is designed to analyse viral genomes using both reference based and assembly based approaches.
+The reference based approach is however our primary choice, in order to describe all potential mutations at the variant-allele fraction closest to the limit of detection.
+
+## Reference-based approach
+
+We trimmed sequenced reads using CutAdapt to remove adapter sequences and low quality bases. We then aligned reads to the provided reference genome for `r params$genome` using BWA. Subsequently, the resulting bam files have been used for variant calling with both a widely used somatic variant caller, LoFreq, as well as with a variant caller specifically developed for amplicon based sequencing and viral evolution analysis, iVar.
+The called variants are used to generate consensus sequences.
+The consensus sequences are used to infer phylogeny, analysing them compared to the reference and a number of key genomes selected in advance. The best phylogenetic tree is selected and displayed in the report.
+
+## Assembly-based approach
+
+In this case, the reads are assembled into contigs using a popular tool SPADES, and the contigs produced from each sample are ordered along a reference genome in order to create a draft assembly.
+Each draft assembly is analysed using whole-genome alignment tool Mauve, with the aim of discovering any larger genome rearrangement or structural variants.
+
+# Results
+
+The following results are reported by sample, and have been generated with the procedure described above. More details about the tools as well as references are provided within the methods section below.
+
+## Read Based Variant Analysis
+
+```{r parseInput, include=FALSE}
+library(tidyverse)
+vcfFiles <- strsplit(params$vcf, ",")
+samples <- strsplit(params$samples, ",")
+callers <- strsplit(params$callers, ",")
+
+vcfInfo <- data.frame(
+  sample = samples,
+  caller = callers,
+  vcf = vcfFiles,
+  stringsAsFactors = FALSE
+)
+names(vcfInfo) <- c("sample", "caller", "vcf")
+
+bamSamples <- strsplit(params$bamSamples, ",")
+bamFiles <- strsplit(params$bamFiles, ",")
+
+bamInfo <- data.frame(
+  sample = bamSamples,
+  bam = bamFiles,
+  stringsAsFactors = FALSE
+)
+names(bamInfo) <- c("sample", "bam")
+
+sampleData <- vcfInfo %>%
+  left_join(bamInfo, by = "sample")
+```
+
+
+```{r run-summary-md, include=FALSE}
+library(Gviz)
+library(VariantAnnotation)
+library(GenomicFeatures)
+library(rtracklayer)
+library(Biostrings)
+library(tidyverse)
+library(knitr)
+out = NULL
+vcfList = list()
+varList = list()
+for (index in 1:dim(sampleData)[[1]]) {
+  genome <- params$genome
+  noannotation <- toString(params$noannotation)
+  variants <- file
+  model <- params$genemodel
+  sample <- sampleData[index,]$sample
+  caller <- sampleData[index,]$caller
+  vcffile <- sampleData[index,]$vcf
+  bamfile <- sampleData[index,]$bam
+  baseDir <- params$baseDir
+  env = new.env()
+  out = c(out, knit_child(paste0(baseDir, "/docs/loop_sample_variants.Rmd"), envir=env))
+}
+```
+
+`r paste(out, collapse = '\n')`
+
+## Table of Variants
+
+We provide a full list of variant calls by LoFreq, filtered by passing criteria requiring alt supporting read depth of 100 at the position and a variant allele fraction above 1%. Positions are given relative to the provided reference for genome `r params$genome`.
+
+```{r}
+library(tidyverse)
+library(pander)
+vartable <- read.csv(params$varianttable)
+#This has columns: "Sample,Caller,Region,Position,Ref,Alt,Ref_Reads,Alt_Reads,Proportion,Basic_Pass,Gene"
+lofreqvars <- filter(vartable, Basic_Pass=="True", Caller=="lofreq")
+lofreqvars$Depth <- lofreqvars$Ref_Reads + lofreqvars$Alt_Reads
+lofreqvars <- lofreqvars[,c("Sample","Position","Ref","Alt","Depth","Proportion","Gene")]
+if (params$noannotation=="true") {
+  lofreqvars <- subset(lofreqvars, select=-c(Gene))
+}
+pander(lofreqvars)
+```
+
+We similarly present the results of variant calling by iVar using the same filtering criteria.
+
+```{r}
+library(tidyverse)
+library(pander)
+vartable <- read.csv(params$varianttable)
+ivarvars <- filter(vartable, Basic_Pass=="True", Caller=="ivar")
+ivarvars$Depth <- ivarvars$Ref_Reads + ivarvars$Alt_Reads
+ivarvars <- ivarvars[,c("Sample","Position","Ref","Alt","Depth","Proportion","Gene")]
+if (params$noannotation=="true") {
+  ivarvars <- subset(ivarvars, select=-c(Gene))
+}
+pander(ivarvars)
+```
+
+```{r, echo=FALSE, results='asis', eval=params$genome=="SARS-CoV-2"}
+cat("## Read Based Consensus Phylogenetic Analysis")
+```
+
+```{r parseTree, include=FALSE, eval=params$genome=="SARS-CoV-2"}
+library(ggtree)
+jmodel_bic <- read.tree(params$bicTree)
+jmodel_aic <- read.tree(params$aicTree)
+alignment <- readDNAMultipleAlignment(params$msaPhylip, format = "phylip")
+```
+
+```{r, echo=FALSE, results='asis', eval=params$genome=="SARS-CoV-2"}
+cat("Using the consensus sequences generated by comparing the reference to the combination of sample/variants analysis reported above, we have created a multiple alignment.
+The alignment has then been used to compute the most informative tree, across a combination of alternative substitution matrices as well as topology methods.
+Due to a convention in the Newick format for phylogenetic trees, the names of the samples have been cut to 10 characters.
+Below a correspondence of the leaves names you will see in the following plots and the original sample names.")
+```
+
+```{r treenames, include=FALSE, eval=params$genome=="SARS-CoV-2"}
+tree_samples <- read_tsv(params$treeNames)
+```
+
+```{r namestable, echo=FALSE, eval=params$genome=="SARS-CoV-2"}
+library(pander)
+pander(tree_samples)
+```
+
+```{r, echo=FALSE, results='asis', eval=params$genome=="SARS-CoV-2"}
+cat("### Akaike Information Criterion selection
+
+The top ranking tree, according to the AIC score, is indicated below.
+")
+```
+
+```{r AICtree, results='asis', echo=FALSE, eval=params$genome=="SARS-CoV-2"}
+aic <- ggtree(jmodel_aic)+
+  geom_tiplab()+
+  geom_rootpoint(color = "black", size = 3)+
+  geom_tippoint(color = "blue", alpha = .8, size = 3)
+plot(aic)
+```
+
+```{r, echo=FALSE, results='asis', eval=params$genome=="SARS-CoV-2"}
+cat("### Bayesian Information Criterion selection
+
+The top ranking tree, according to the BIC score, is presented below.
+")
+```
+
+```{r BICtree, results='asis', echo=FALSE, eval=params$genome=="SARS-CoV-2"}
+bic <- ggtree(jmodel_bic)+
+  geom_tiplab()+
+  geom_rootpoint(color = "black", size = 3)+
+  geom_tippoint(color = "blue", alpha = .8, size = 3)
+plot(bic)
+```
+
+```{r, echo=FALSE, results='asis', eval=params$genome=="SARS-CoV-2"}
+cat("We can also draw an overview of all sequence variation in the following MSA plot.")
+```
+
+```{r MSAplot, results='asis', echo=FALSE, eval=params$genome=="SARS-CoV-2"}
+msaplot(bic, fasta = params$msaFasta)
+```
+
+```{r SaveAll, include=FALSE}
+save.image("analysis_report.RData")
+```
+
+# QC of the data
+
+We performed QC analysis on the raw sequencing output using FastQC and MultiQC. We provide the output of this in a second summary QC report.
+
+## Trimming Stats
+
+We performed trimming before the alignment and subsequent analysis using CutAdapt. Adapter sequence and low quality bases were removed from ends of reads, and reads were discarded where they fell below survivor thresholds. A high proportion of reads passing trimming indicates acceptable general sequencing quality for the run.
+
+```{r trimstats}
+library(tidyverse)
+library(ggplot2)
+trimtable <- read.csv(params$trimsummarytable)
+trimtable$Survived <- trimtable$Trimming.Survivor.Read.Pairs
+trimtable$Removed <- trimtable$Total.Read.Pairs.Sequenced - trimtable$Trimming.Survivor.Read.Pairs
+trimtable <- gather(data=trimtable, key="Total", value="ReadPairs", "Survived", "Removed")
+ggplot(data=trimtable, aes(x=Sample.Name, y=ReadPairs, fill=Total)) +
+  geom_bar(stat="identity") +
+  coord_flip() +
+  ggtitle("Trimming Stats") +
+  xlab("Sample name") +
+  ylab("Total read pairs") +
+  labs(fill = "Trimming survival")
+```
+
+### Alignment Stats
+
+Alignment to the reference was performed using BWA and the statistics for SAM flags were assessed using SAMTools. A high proportion of reads aligning to the reference indicates that most of the sequenced material matched to the reference.
+
+```{r alignstats}
+library(tidyverse)
+library(ggplot2)
+aligntable <- read.csv(params$alignmentsummarytable)
+aligntable$Not_Aligned <- aligntable$Reads_Processed - aligntable$Aligned_Reads
+alignshort <- aligntable[,c("Sample_Name","Aligned_Reads","Not_Aligned")]
+alignm <- gather(alignshort, key="Total", value="ReadPairs", "Aligned_Reads", "Not_Aligned")
+ggplot(alignm, aes(x = Sample_Name, y = ReadPairs)) +
+  geom_bar(aes(fill = Total), stat = "identity") +
+  coord_flip() +
+  ggtitle("Aligned Reads") +
+  xlab("Sample Name") +
+  ylab("Read Count") +
+  labs(fill = "Alignment Status")
+```
+
+## Depth of Coverage
+
+The depth of coverage across all bases on the reference was calculated using SAMTools. Regions with low or no coverage can indicate deletions, alignment artefacts due to repeat regions, and regions which were not sequenced, for example due to amplicon design.
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+depthtable <- read.table(params$samdepthtable, header=TRUE)
+depthgathered <- gather(data=depthtable, key="Sample", value="Depth",c(-1,-2))
+ggplot(data=depthgathered)+
+  geom_histogram(mapping=aes(x=Depth))+
+  xlab("Sequencing Depth")+
+  ylab("Count of Bases")+
+  ggtitle("Distribution of Base Depth Values")+
+  facet_wrap(.~Sample)
+
+ggplot(data=depthgathered)+
+  geom_line(mapping=aes(x=Position, y=Depth, col=Sample), size=1)+
+  ggtitle(paste0("Depth of Coverage Across Reference ",params$genome))
+```
+
+# Methods
+
+## Alignment
+
+The reads were trimmed for sequencing adapters and quality using *Cutadapt* [publication](http://journal.embnet.org/index.php/embnetjournal/article/view/200), using the following criteria:
+
+Bases were trimmed from the ends of the reads where the sum of quality scores lay below a running total, using Phred score cutoff 30 (this indicates in general a base having a one in a thousand chance of error). Reads containing any unknown bases (indicated by N in the called sequence) were discarded. Adapter sequences were trimmed from reads using the Illumina Nextera adapter reference, allowing for 0.1 error rate when matching sequence to adapter. Reads were discarded when their length after trimming with this process fell below 50 bases.
+
+Following the trimming, the reads were then aligned to the reference using *bwa-mem* [BWA manuscript](https://arxiv.org/abs/1303.3997), using default settings.
+
+### Variant Calling and Filtering
+
+**LoFreq Calling**
+
+The tool LoFreq was used as part of the reference-based analysis pipeline. We used the LoFreq utility indelqual to add quality information to indels in alignments in the bam files. We then used SAMTools to index and then LoFreq calling in parallel including indel calling. LoFreq can include a number of spurious variant calls, particularly in high depth sequencing data, and so we have added a pass criteria to subsequent analyses requiring an alt read supporting depth of 100 reads and variant allele read proportion above 1%.
+
+**iVar Calling**
+
+The *iVar* workflow has been specifically developed to call variants within viral genomes when they are sequenced with amplicon approaches, and with the goal of reconstructing how viruses evolve within hosts.
+The tool is therefore particularly suitable for the analysis when high-depth amplicon sequencing is performed, and when the identification of lower variant allele-fraction is necessary.
+The tool allows removal of primers used for the amplification, calling variants in combination with *Samtools* and creating a consensus sequence.
+[iVar Publication](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-018-1618-7)
+
+During the iVar calling, loose thresholds are applied to variant identification in order to increase sensitivity and allow post-calling filtering for refining precision.
+In particular, for the calling:
+
+- allele-fraction threshold = 0.001
+- read depth threshold = 10
+
+In order to call the consensus sequence, based on the calling results, the following criteria are instead applied by default:
+
+- allele-fraction threshold = 0.01
+- read depth threshold = 100
+
+**Variant Filters for Reporting**
+
+In order to report the called variants, the following filters are applied on top of the basic calling performed by both LoFreq and iVar:
+
+- allele-fraction threshold = 0.01
+- minimum alt read supporting depth = 100
+
+
+### Phylogenetic Analysis
+
+**Multiple Sequence Alignment**
+
+Once consensus sequences have been generated from the variant calling pipelines, the FASTA files are aligned all together using MUSCLE.
+
+MUSCLE is a tool originally developed for creating multiple alignments of protein sequences. MUSCLE first constructs a tree of the sequences with distance estimation, initially using kmer counting. A progressive alignment is performed following the branching of the tree. These two processes are then repeated until the alignment has been refined.
+It produces alignments of competitive accuracy compared to other methods and emits results in several different formats: characteristics we found useful in the context of this pipeline.
+[MUSCLE paper](https://pubmed.ncbi.nlm.nih.gov/15034147/)
+
+**Computation of multiple trees**
+
+In order to carry out the best tree computation and an unbiased selection of the most informative tree, we have used jModelTest2. jModelTest is a popular tool for selecting optimal trees using multiple competing models of base substitutions.
+We selected the Akaike and Bayesian information criteria (AIC and BIC), as the measures with which to select best base substitution models. jModelTest also provides other information on the output trees, indicating the confidence in the models used.
+
+In order to compute the trees we have used the following substitution schemes: JC/F81, K80/HKY, SYM/GTR.
+
+Then, the tree topology has been defined as the best among the Nearest Neighbour Interchange and the Subtree Pruning and Regrafting with a Maximum-Likelihood search.[jModelTest2 publication](https://www.nature.com/articles/nmeth.2109)
+
+**Selection of base substitution model**
+
+As a complete substitution rate matrix may not be feasible to optimise, jModelTest2 tests among models restricting this variation, such as assuming a ratio of transitions to transversions. To select the best of these models, we use the Akaike Information Criterion and the Bayesian Information Criterion.
+
+The AIC is computed by subtracting the maximum log-likelihood value of the data with this model from the number of free parameters given. A low AIC indicates that better approximation to the real model with few parameters risking overfitting.
+As an alternative, the BIC is calculated with the number of samples included as a factor. The model with the smalled BIC has the maximum posterior probability, assuming priors for the models are equal.
+
+## Assembly Based Analysis
+
+We used the de novo assembly tool Spades to assemble trimmed paired-end sequencing reads. We ran Spades using automated detection of coverage thresholds and other default settings to estimate insert size. We used the isolates flag, as recommended to account for the high coverage viral data. Completed Spades contigs were then aligned by the Progressive Aligner algorithm in Mauve to the reference genome for each assembled sample. We use Mauve to visualise the output alignments to show the ordering and orientation of contigs on the reference and to detect any clear structural rearrangements, deletions and possible non-reference sequence present.

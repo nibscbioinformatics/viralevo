@@ -1,0 +1,21 @@
+name: Docker Build & Push - Finishing
+
+on:
+  push:
+    branches: [ dev ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: Build and push Docker images
+        uses: docker/build-push-action@v1.1.0
+        with:
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: nibscbioinformatics/viralevo-genomefinish
+          tags: dev-git
+          path: ./containers/viralevo-genomefinish
+          always_pull: false
+          push: true

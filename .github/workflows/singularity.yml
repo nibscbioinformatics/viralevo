@@ -1,0 +1,71 @@
+name: Singularity Conversion
+
+on:
+  push:
+    branches: [ dev ]
+
+jobs:
+  convert:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: Starting container
+        run: |
+          echo "########### SETTING CONTAINER UP"
+          docker run --privileged -d -t --name singenv -v "$(pwd)":/work nibscbioinformatics/singularityenv:dev-git
+          echo "########### --- container up and running -------------"
+      - name: Convert Reporting
+        run: |
+          echo "########### BUILDING SINGULARITY CONTAINER"
+          docker exec -u root -w /work singenv singularity build viralevo-reporting-dev-git.sif docker://nibscbioinformatics/viralevo-reporting:dev-git
+          echo "########### --- container built done -------------"
+      - name: Save Reporting
+        uses: actions/upload-artifact@v1
+        with:
+          name: container
+          path: viralevo-reporting-dev-git.sif
+      - name: Convert Finishing
+        run: |
+          echo "########### BUILDING SINGULARITY CONTAINER"
+          docker exec -u root -w /work singenv singularity build viralevo-genomefinish-dev-git.sif docker://nibscbioinformatics/viralevo-genomefinish:dev-git
+          echo "########### --- container built done -------------"
+      - name: Save Finishing
+        uses: actions/upload-artifact@v1
+        with:
+          name: container
+          path: viralevo-genomefinish-dev-git.sif
+
+
+  azupload:
+    runs-on: ubuntu-latest
+    needs: convert
+    steps:
+      - name: Download container
+        uses: actions/download-artifact@v1
+        with:
+          name: container
+      - name: Starting container Az CLI
+        run: |
+          echo "########### SETTING CLI CONTAINER UP"
+          docker run -d -t --name azurecli -v "$(pwd)":/work mcr.microsoft.com/azure-cli
+          echo "########### --- container up and running -------------"
+      - name: Upload Reporting to Azure Bucket
+        run: |
+          echo "########### UPLOADING FILE into Blob Storage"
+          docker exec -w /work azurecli az storage blob upload \
+          --auth-mode key \
+          --account-name ${{ secrets.AZ_ACCOUNT_NAME }} \
+          --account-key ${{ secrets.AZ_STORAGE_KEY }} \
+          --container-name containers \
+          --name viralevo-reporting-dev-git.sif \
+          --file ./container/viralevo-reporting-dev-git.sif
+      - name: Upload Finishing to Azure Bucket
+        run: |
+          echo "########### UPLOADING FILE into Blob Storage"
+          docker exec -w /work azurecli az storage blob upload \
+          --auth-mode key \
+          --account-name ${{ secrets.AZ_ACCOUNT_NAME }} \
+          --account-key ${{ secrets.AZ_STORAGE_KEY }} \
+          --container-name containers \
+          --name viralevo-genomefinish-dev-git.sif \
+          --file ./container/viralevo-genomefinish-dev-git.sif
