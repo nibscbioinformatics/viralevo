@@ -124,10 +124,10 @@ We provide a full list of variant calls by LoFreq, filtered by passing criteria 
 library(tidyverse)
 library(pander)
 vartable <- read.csv(params$varianttable)
-#This has columns: "Sample,Caller,Region,Position,Ref,Alt,Ref_Reads,Alt_Reads,Proportion,Basic_Pass,Gene"
+#This has columns: "Sample,Caller,Region,Position,Ref,Alt,Ref_Reads,Alt_Reads,Proportion,Basic_Pass,Gene,Annotation,FeatureType,HGVSc,HGVSp"
 lofreqvars <- filter(vartable, Basic_Pass=="True", Caller=="lofreq")
 lofreqvars$Depth <- lofreqvars$Ref_Reads + lofreqvars$Alt_Reads
-lofreqvars <- lofreqvars[,c("Sample","Position","Ref","Alt","Depth","Proportion","Gene")]
+lofreqvars <- lofreqvars[,c("Sample","Position","Ref","Alt","Depth","Proportion","Gene","Annotation","FeatureType","HGVSc","HGVSp")]
 if (params$noannotation=="true") {
   lofreqvars <- subset(lofreqvars, select=-c(Gene))
 }
@@ -142,7 +142,7 @@ library(pander)
 vartable <- read.csv(params$varianttable)
 ivarvars <- filter(vartable, Basic_Pass=="True", Caller=="ivar")
 ivarvars$Depth <- ivarvars$Ref_Reads + ivarvars$Alt_Reads
-ivarvars <- ivarvars[,c("Sample","Position","Ref","Alt","Depth","Proportion","Gene")]
+ivarvars <- ivarvars[,c("Sample","Position","Ref","Alt","Depth","Proportion","Gene","Annotation","FeatureType","HGVSc","HGVSp")]
 if (params$noannotation=="true") {
   ivarvars <- subset(ivarvars, select=-c(Gene))
 }
