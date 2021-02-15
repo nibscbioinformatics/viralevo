@@ -131,7 +131,7 @@ lofreqvars <- lofreqvars[,c("Sample","Position","Ref","Alt","Depth","Proportion"
 if (params$noannotation=="true") {
   lofreqvars <- subset(lofreqvars, select=-c(Gene))
 }
-pander(lofreqvars)
+pander(lofreqvars, split.table = Inf)
 ```
 
 We similarly present the results of variant calling by iVar using the same filtering criteria.
@@ -146,7 +146,7 @@ ivarvars <- ivarvars[,c("Sample","Position","Ref","Alt","Depth","Proportion","Ge
 if (params$noannotation=="true") {
   ivarvars <- subset(ivarvars, select=-c(Gene))
 }
-pander(ivarvars)
+pander(ivarvars, split.table = Inf)
 ```
 
 ```{r, echo=FALSE, results='asis', eval=params$genome=="SARS-CoV-2"}

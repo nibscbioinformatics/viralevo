@@ -20,7 +20,7 @@ basicpassproportion = float(sys.argv[4]) #0.01
 #lofreq has lines like:
 #NC_045512.2     241     .       C       T       49314.0 PASS    DP=5101;AF=0.993923;SB=46;DP4=0,21,2067,3003;ANN=T|intergenic_region|MODIFIER|CHR_START-ORF1ab|CHR_START-GU280_gp01|intergenic_region|CHR_START-GU280_gp01|||n.241C>T||||||
 
-fileout.write("Sample,Caller,Region,Position,Ref,Alt,Ref_Reads,Alt_Reads,Proportion,Basic_Pass,Gene\n")
+fileout.write("Sample,Caller,Region,Position,Ref,Alt,Ref_Reads,Alt_Reads,Proportion,Basic_Pass,Gene,Annotation,FeatureType,HGVSc,HGVSp\n")
 
 for infile in infiles:
     if ("_lofreq_annotated.vcf" in infile) or ("_lofreq.vcf" in infile):
@@ -46,9 +46,17 @@ for infile in infiles:
                 vcfout.write(line)
             if ("_lofreq_annotated.vcf" in infile):
               gene = collect[7].split(";ANN=")[1].split("|")[3]
+              nucleotidemodification = collect[7].split(";ANN=")[1].split("|")[9]
+              aminoacidmodification = collect[7].split(";ANN=")[1].split("|")[10]
+              mutationnature = collect[7].split(";ANN=")[1].split("|")[1]
+              featuretype = collect[7].split(";ANN=")[1].split("|")[5]
             else:
               gene = "NA"
-            fileout.write(",".join([samplename,caller,chromosome,position,ref,alt,str(refdepth),str(altdepth),str(proportion),str(basicpass),gene])+"\n")
+              nucleotidemodification = "NA"
+              aminoacidmodification = "NA"
+              mutationnature = "NA"
+              featuretype = "NA"
+            fileout.write(",".join([samplename,caller,chromosome,position,ref,alt,str(refdepth),str(altdepth),str(proportion),str(basicpass),gene,mutationnature,featuretype,nucleotidemodification,aminoacidmodification])+"\n")
         filein.close()
         vcfout.close()
     if ("_ivar_annotated.vcf" in infile) or ("_ivar.vcf" in infile):
@@ -76,9 +84,17 @@ for infile in infiles:
                 vcfout.write(line)
             if ("_ivar_annotated.vcf" in infile):
               gene = collect[7].split(";ANN=")[1].split("|")[3]
+              nucleotidemodification = collect[7].split(";ANN=")[1].split("|")[9]
+              aminoacidmodification = collect[7].split(";ANN=")[1].split("|")[10]
+              mutationnature = collect[7].split(";ANN=")[1].split("|")[1]
+              featuretype = collect[7].split(";ANN=")[1].split("|")[5]
             else:
               gene = "NA"
-            fileout.write(",".join([samplename,caller,chromosome,position,ref,alt,str(refdepth),str(altdepth),str(proportion),str(basicpass),gene])+"\n")
+              nucleotidemodification = "NA"
+              aminoacidmodification = "NA"
+              mutationnature = "NA"
+              featuretype = "NA"
+            fileout.write(",".join([samplename,caller,chromosome,position,ref,alt,str(refdepth),str(altdepth),str(proportion),str(basicpass),gene,mutationnature,featuretype,nucleotidemodification,aminoacidmodification])+"\n")
         filein.close()
         vcfout.close()
 
