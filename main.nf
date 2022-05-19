@@ -279,10 +279,10 @@ process BuildBWAindexes {
     tag "BWA index"
 
     input:
-        file(fasta) from ch_fasta
+    file(fasta) from ch_fasta
 
     output:
-        file("${fasta}.*") into ch_bwaIndex
+    file("${fasta}.*") into ch_bwaIndex
 
     script:
     """
@@ -318,7 +318,7 @@ process docutadapt {
 
   output:
   set ( sampleprefix, file("${sampleprefix}.R1.trimmed.fastq.gz"), file("${sampleprefix}.R2.trimmed.fastq.gz") ) into (trimmingoutput1, trimmingoutput2)
-  file("${sampleprefix}.trim.out") into trimouts
+  file("${sampleprefix}.trim.*") into trimouts // change 1 both the err and out written here
 
   script:
   """
@@ -339,7 +339,7 @@ process dotrimlog {
 
   script:
   """
-  python $baseDir/scripts/logger.py logdir trimming-summary.csv cutadapt
+  logger.py logdir trimming-summary.csv cutadapt
   """
 }
 
@@ -425,7 +425,7 @@ process doalignmentlog {
 
   script:
   """
-  python $baseDir/scripts/logger.py logdir alignment-summary.csv flagstat
+  logger.py logdir alignment-summary.csv flagstat
   """
 }
 
@@ -551,7 +551,7 @@ process ivarCalling {
   -r $fasta \
   -g $gff
 
-  perl $baseDir/scripts/ivar2vcf.pl --ivar ${sampleID}_variants.tsv --vcf ${sampleID}_ivar.vcf
+  ivar2vcf.pl --ivar ${sampleID}_variants.tsv --vcf ${sampleID}_ivar.vcf
   """
 }
 
@@ -611,7 +611,7 @@ process makevartable {
   when: 'lofreq' in tools | 'ivar' in tools | 'all' in tools
 
   """
-  python $baseDir/scripts/tablefromvcf.py varcalls varianttable.csv ${params.alt_depth_threshold} ${params.vaf_threshold}
+  tablefromvcf.py varcalls varianttable.csv ${params.alt_depth_threshold} ${params.vaf_threshold}
   """
 }
 
@@ -629,6 +629,14 @@ process buildconsensus {
   tuple val(sampleprefix), val(caller), file("${sampleprefix}_${caller}_consensus.fa") into consensus_ch
   tuple val(sampleprefix), val(caller), file("${vcfin}") into annotated_vcf_ch
 
+  // GCP implementation: all files staged in channels (cant write to directly in script)
+  tuple val(sampleprefix), val(caller), file("${sampleprefix}_${caller}.consensus.fasta") into fa_ch
+  tuple val(sampleprefix), val(caller), file("${sampleprefix}_${caller}.cutup.vcf")
+  tuple val(sampleprefix), val(caller), file("${sampleprefix}_${caller}.nodups.vcf")
+  tuple val(sampleprefix), val(caller), file("${sampleprefix}_${caller}.vcf.gz")
+  tuple val(sampleprefix), val(caller), file("${sampleprefix}_${caller}.vcf.gz.csi")
+
+
   when: 'lofreq' in tools | 'ivar' in tools | 'all' in tools
 
   script:
@@ -641,12 +649,33 @@ process buildconsensus {
   bcftools index ${sampleprefix}_${caller}.vcf.gz
   cat $fastaref | bcftools consensus ${sampleprefix}_${caller}.vcf.gz > ${sampleprefix}_${caller}.consensus.fasta
 
-  perl $baseDir/scripts/change_fasta_name.pl \
-  -fasta ${sampleprefix}_${caller}.consensus.fasta \
-  -name ${sampleprefix}L \
-  -out ${sampleprefix}_${caller}_consensus.fa
+  change-fasta-name.py ${sampleprefix}_${caller}.consensus.fasta ${sampleprefix}L ${sampleprefix}_${caller}_consensus.fa
   """
 }
+
+
+//process changefastaname { 
+//  publishDir "$params.outdir/calling/${caller}/${sampleprefix}", mode: "copy"
+//  label 'process_medium'
+
+//  input:
+//  file(vcfin) from filteredvars.flatten() //"${sampleprefix}_${caller}_filtered.vcf"
+//  file(faref) from fa_ch.flatten()
+  
+//  output:
+//  tuple val(sampleprefix), val(caller), file("${sampleprefix}_${caller}_consensus.fa") into consensus_ch
+ 
+//  when: 'lofreq' in tools | 'ivar' in tools | 'all' in tools
+
+ // script:
+ // sampleprefix = ((vcfin.name).replace("_lofreq_filtered.vcf","")).replace("_ivar_filtered.vcf","")
+ // caller = ((vcfin.name).replace(sampleprefix+"_","")).replace("_filtered.vcf","")
+  
+//  """
+ // change-fasta-name.py ${sampleprefix}_${caller}.consensus.fasta ${sampleprefix}L ${sampleprefix}_${caller}_consensus.fa
+ // """
+//}
+
 
 
 /*
@@ -679,7 +708,7 @@ process MuscleMSA {
   """
   cat $consensus $phyloref >to_be_aligned.fa
 
-  perl $baseDir/scripts/trim_fasta_names.pl \
+  trim_fasta_names.pl \
   -fasta to_be_aligned.fa \
   -out to_be_aligned_trimmed.fa
 
@@ -730,7 +759,7 @@ process JModelTest {
   --set-property log-dir=`pwd` \
   -w
 
-  perl $baseDir/scripts/extract_jmodel.pl \
+  perl extract_jmodel.pl \
   -jmodel jmodel_tree_selection.txt \
   -aictree jmodel_tree_selection_aic.tree \
   -bictree jmodel_tree_selection_bic.tree
