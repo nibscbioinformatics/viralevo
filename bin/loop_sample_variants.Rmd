@@ -8,7 +8,7 @@ editor_options:
 ```{r, include=FALSE}
 options(ucscChromosomeNames=FALSE)
 
-source(paste0(baseDir,"/scripts/parseSnpEff.R"))
+source("./parseSnpEff.R"))
 vcf <- readVcf(vcffile, genome = genome)
 if (noannotation == "false") {
   vcf <- parseSnpEff(vcf)
