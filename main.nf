@@ -653,31 +653,6 @@ process buildconsensus {
   """
 }
 
-
-//process changefastaname { 
-//  publishDir "$params.outdir/calling/${caller}/${sampleprefix}", mode: "copy"
-//  label 'process_medium'
-
-//  input:
-//  file(vcfin) from filteredvars.flatten() //"${sampleprefix}_${caller}_filtered.vcf"
-//  file(faref) from fa_ch.flatten()
-  
-//  output:
-//  tuple val(sampleprefix), val(caller), file("${sampleprefix}_${caller}_consensus.fa") into consensus_ch
- 
-//  when: 'lofreq' in tools | 'ivar' in tools | 'all' in tools
-
- // script:
- // sampleprefix = ((vcfin.name).replace("_lofreq_filtered.vcf","")).replace("_ivar_filtered.vcf","")
- // caller = ((vcfin.name).replace(sampleprefix+"_","")).replace("_filtered.vcf","")
-  
-//  """
- // change-fasta-name.py ${sampleprefix}_${caller}.consensus.fasta ${sampleprefix}L ${sampleprefix}_${caller}_consensus.fa
- // """
-//}
-
-
-
 /*
 ####################################################################
 ###### PHYLOGENETIC ANALYSIS ON CONSENSUS STARTS HERE ##############
@@ -702,15 +677,20 @@ process MuscleMSA {
   file("muscle_multiple_alignment.clw")
   file("names_conversion_table.txt") into aligned_names_ch
 
+  // all files in channels
+  file("to_be_aligned.fa")
+  file("to_be_aligned_trimmed.fa")
+
+
   when: 'lofreq' in tools | 'ivar' in tools | 'all' in tools
 
   script:
   """
-  cat $consensus $phyloref >to_be_aligned.fa
+  cat $consensus $phyloref > to_be_aligned.fa
 
-  trim_fasta_names.pl \
-  -fasta to_be_aligned.fa \
-  -out to_be_aligned_trimmed.fa
+  trim-fasta-name.py \
+  to_be_aligned.fa \
+  to_be_aligned_trimmed.fa
 
   muscle \
   -in to_be_aligned_trimmed.fa \
@@ -739,7 +719,7 @@ process JModelTest {
   output:
   file("${alignment}.jmodeltest.*.html")
   file("jmodel_tree_selection.txt")
-  path("images", type: 'dir')
+//  path("images", type: 'dir') removed as undetected in output
   path("resources", type: 'dir')
   tuple file("jmodel_tree_selection_aic.tree"), file("jmodel_tree_selection_bic.tree") into jmodel_trees_ch
 
@@ -759,7 +739,7 @@ process JModelTest {
   --set-property log-dir=`pwd` \
   -w
 
-  perl extract_jmodel.pl \
+  extract_jmodel.pl \
   -jmodel jmodel_tree_selection.txt \
   -aictree jmodel_tree_selection_aic.tree \
   -bictree jmodel_tree_selection_bic.tree
@@ -878,11 +858,12 @@ process Reporting {
   bamFiles = bamList.join(",")
   baiFiles = baiList.join(",")
 
+// removed the basedir paths to reports
   """
-  ln -s $baseDir/assets/nibsc_report.css .
+  ln -s analysis_report.R ./analysis_report.Rmd 
 
   Rscript -e "workdir<-getwd()
-    rmarkdown::render('$baseDir/docs/analysis_report.Rmd',
+    rmarkdown::render('analysis_report.Rmd',
     params = list(
       vcf = \\\"$vcfFiles\\\",
       callers = \\\"$callerLabels\\\",
