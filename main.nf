@@ -19,6 +19,8 @@ params.vaf_threshold = 0.01
 params.alt_depth_threshold = 100
 params.noannotation = false
 params.tools = 'all'
+params.report_template = 'https://raw.githubusercontent.com/nibscbioinformatics/viralevo/feature-gcp-gls/bin/analysis_report.Rmd'
+params.report_utils = 'https://raw.githubusercontent.com/nibscbioinformatics/viralevo/feature-gcp-gls/bin/loop_sample_variants.Rmd'
 
 def helpMessage() {
     // TODO nf-core: Add to this help message with new command line parameters
@@ -93,6 +95,8 @@ if (params.genome_rmodel) { ch_genome_rmodel = Channel.value(file(params.genome_
 
 primers_ch = params.primers ? Channel.value(file(params.primers)) : "null"
 ch_adapter = params.adapter ? Channel.value(file(params.adapter)) : "null"
+ch_report = params.report_template ? Channel.value(file(params.report_template)) : "null"
+ch_report_utils = params.report_utils ? Channel.value(file(params.report_utils)) : "null"
 
 // ### TOOLS Configuration
 toolList = defaultToolList()
@@ -827,6 +831,9 @@ process Reporting {
   file(samdepth) from samdepthout
   file(varianttable) from nicetable
 
+  file(report) from ch_report
+  file(util_script) from ch_report_utils
+
   output:
   file("analysis_report.html")
   file("analysis_report.RData")
@@ -858,19 +865,22 @@ process Reporting {
   bamFiles = bamList.join(",")
   baiFiles = baiList.join(",")
 
-// removed the basedir paths to reports
+// added *.rmd scripts to input channels and copied to workdir for access
   """
-  ln -s analysis_report.R ./analysis_report.Rmd 
 
-  Rscript -e "workdir<-getwd()
-    rmarkdown::render('analysis_report.Rmd',
+  cp -L ${report} report.Rmd
+  cp -L ${util_script} loop_utils.Rmd
+
+  Rscript -e "workdir<-getwd()    
+    
+    rmarkdown::render(input ='report.Rmd',
     params = list(
       vcf = \\\"$vcfFiles\\\",
       callers = \\\"$callerLabels\\\",
       samples = \\\"$sampleNames\\\",
       genome = \\\"${params.genome}\\\",
       genemodel = \\\"$rmodel\\\",
-      baseDir = \\\"$baseDir\\\",
+      baseDir = workdir,
       bamSamples = \\\"$bamSamples\\\",
       bamFiles = \\\"$bamFiles\\\",
       aicTree = \\\"$aicTree\\\",
@@ -884,8 +894,8 @@ process Reporting {
       treeNames = \\\"$treeNames\\\",
       noannotation = \\\"${params.noannotation}\\\"
       ),
-    knit_root_dir=workdir,
-    output_dir=workdir)"
+     knit_root_dir=workdir,
+     output_dir=workdir)"
   """
 
 

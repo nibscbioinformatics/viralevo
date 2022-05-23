@@ -110,7 +110,7 @@ for (index in 1:dim(sampleData)[[1]]) {
   bamfile <- sampleData[index,]$bam
   baseDir <- params$baseDir
   env = new.env()
-  out = c(out, knit_child(paste0(baseDir, "/docs/loop_sample_variants.Rmd"), envir=env))
+  out = c(out, knit_child("loop_utils.Rmd", envir=env))
 }
 ```
 
