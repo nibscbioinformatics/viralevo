@@ -21,6 +21,9 @@ params.noannotation = false
 params.tools = 'all'
 params.report_template = 'https://raw.githubusercontent.com/nibscbioinformatics/viralevo/feature-gcp-gls/bin/analysis_report.Rmd'
 params.report_utils = 'https://raw.githubusercontent.com/nibscbioinformatics/viralevo/feature-gcp-gls/bin/loop_sample_variants.Rmd'
+params.report_snpeff = 'https://raw.githubusercontent.com/nibscbioinformatics/viralevo/feature-gcp-gls/bin/parseSnpEff.R' 
+params.report_template = 'https://raw.githubusercontent.com/nibscbioinformatics/viralevo/feature-gcp-gls/bin/nibsc_report.css'
+
 
 def helpMessage() {
     // TODO nf-core: Add to this help message with new command line parameters
@@ -95,8 +98,12 @@ if (params.genome_rmodel) { ch_genome_rmodel = Channel.value(file(params.genome_
 
 primers_ch = params.primers ? Channel.value(file(params.primers)) : "null"
 ch_adapter = params.adapter ? Channel.value(file(params.adapter)) : "null"
+
 ch_report = params.report_template ? Channel.value(file(params.report_template)) : "null"
 ch_report_utils = params.report_utils ? Channel.value(file(params.report_utils)) : "null"
+ch_report_snpeff = params.report_snpeff ? Channel.value(file(params.report_snpeff)) : "null"
+ch_report_template = params.report_template ? Channel.value(file(params.report_template)) : "null"
+
 
 // ### TOOLS Configuration
 toolList = defaultToolList()
@@ -402,7 +409,7 @@ process samtoolsindex {
   set ( sampleprefix, file(indelqualfile) ) from indelqualforindex
 
   output:
-  tuple sampleprefix, file(indelqualfile), file("${indelqualfile}.bai") into (bam_for_call_ch, for_depth_ch, bam_for_report_ch)
+  tuple sampleprefix, file(indelqualfile), file("${indelqualfile}.bai") into (bam_for_call_ch, for_depth_ch, bam_for_report_ch, bamfile_for_report_ch)
   file("${sampleprefix}_flagstat.out") into flagstatouts
 
   """
@@ -631,7 +638,7 @@ process buildconsensus {
 
   output:
   tuple val(sampleprefix), val(caller), file("${sampleprefix}_${caller}_consensus.fa") into consensus_ch
-  tuple val(sampleprefix), val(caller), file("${vcfin}") into annotated_vcf_ch
+  tuple val(sampleprefix), val(caller), file("${vcfin}") into (annotated_vcf_ch, annotated_vcffile_ch)
 
   // GCP implementation: all files staged in channels (cant write to directly in script)
   tuple val(sampleprefix), val(caller), file("${sampleprefix}_${caller}.consensus.fasta") into fa_ch
@@ -803,10 +810,6 @@ process mauvemsa {
   """
 }
 
-
-
-
-
 /*
 #####################################################################
 ############## REPORTING BLOCKS GO HERE #############################
@@ -820,9 +823,15 @@ process Reporting {
   label 'reporting'
 
   input:
+  //tuple val(vcfSample), val(vcfCaller), file(vcfFile) from annotated_vcffile_ch.merge()
+  file(vcfFile) from annotated_vcffile_ch.collect()
   val vcfData from annotated_vcf_ch.toSortedList()
   file(rmodel) from ch_genome_rmodel
+  file(bamFile) from bamfile_for_report_ch.collect()
+  //tuple val(bamData), val(bamCaller), file(bamFile) from bamfile_for_report_ch
+  //path (bamData) from bamfile_for_report_ch.toSortedList()
   val bamData from bam_for_report_ch.toSortedList()
+  
   tuple file(muscleFastaAln), file(musclePhyiAln), file(muscleTree) from muscle_alignment_ch
   tuple file(aicTree), file(bicTree) from jmodel_trees_ch
   file(trimsummary) from trimlogend
@@ -833,6 +842,8 @@ process Reporting {
 
   file(report) from ch_report
   file(util_script) from ch_report_utils
+  file(snpeff_script) from ch_report_snpeff
+  file(report_temp) from ch_report_template
 
   output:
   file("analysis_report.html")
@@ -852,6 +863,7 @@ process Reporting {
   callerLabels = callersList.join(",")
   vcfFiles = vcfList.join(",")
 
+
   // handling the BAM files and metadata
   def bamSampleList = []
   def bamList = []
@@ -870,6 +882,8 @@ process Reporting {
 
   cp -L ${report} report.Rmd
   cp -L ${util_script} loop_utils.Rmd
+  cp -L ${snpeff_script} snpeff_script.R
+  #cp -L ${report_temp} nibsc_report.css
 
   Rscript -e "workdir<-getwd()    
     
