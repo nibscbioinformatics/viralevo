@@ -52,7 +52,7 @@ af <- DataTrack(vars, genome = gen,
                 name = "Allele Fraction"
                 )
 
-cov <- DataTrack(range = bamfile, genome = gen, type = "l",
+cov <- DataTrack(range = basename(bamfile), genome = gen, type = "l",
                      name = "Coverage", window = -1,
                      chromosome = chr)
 ```
