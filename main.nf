@@ -816,6 +816,12 @@ process mauvemsa {
 #####################################################################
 */
 
+
+// modifications:
+// add vcfFile & bamFile to input channels
+// add report script dependencies (variant_loop.Rmd and report.css) to input channel 
+// modified report, variant_loop snpeff scripts to remove hardcoded baseDir paths 
+
 process Reporting {
   publishDir "${params.outdir}/reports", mode: 'copy'
   tag "reporting"
@@ -823,13 +829,10 @@ process Reporting {
   label 'reporting'
 
   input:
-  //tuple val(vcfSample), val(vcfCaller), file(vcfFile) from annotated_vcffile_ch.merge()
   file(vcfFile) from annotated_vcffile_ch.collect()
   val vcfData from annotated_vcf_ch.toSortedList()
   file(rmodel) from ch_genome_rmodel
   file(bamFile) from bamfile_for_report_ch.collect()
-  //tuple val(bamData), val(bamCaller), file(bamFile) from bamfile_for_report_ch
-  //path (bamData) from bamfile_for_report_ch.toSortedList()
   val bamData from bam_for_report_ch.toSortedList()
   
   tuple file(muscleFastaAln), file(musclePhyiAln), file(muscleTree) from muscle_alignment_ch
@@ -877,13 +880,11 @@ process Reporting {
   bamFiles = bamList.join(",")
   baiFiles = baiList.join(",")
 
-// added *.rmd scripts to input channels and copied to workdir for access
   """
 
   cp -L ${report} report.Rmd
   cp -L ${util_script} loop_utils.Rmd
   cp -L ${snpeff_script} snpeff_script.R
-  #cp -L ${report_temp} nibsc_report.css
 
   Rscript -e "workdir<-getwd()    
     
@@ -908,8 +909,8 @@ process Reporting {
       treeNames = \\\"$treeNames\\\",
       noannotation = \\\"${params.noannotation}\\\"
       ),
-     knit_root_dir=workdir,
-     output_dir=workdir)"
+     knit_root_dir = workdir,
+     output_dir = workdir)"
   """
 
 
