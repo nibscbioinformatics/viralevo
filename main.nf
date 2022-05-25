@@ -22,7 +22,7 @@ params.tools = 'all'
 params.report_template = 'https://raw.githubusercontent.com/nibscbioinformatics/viralevo/feature-gcp-gls/bin/analysis_report.Rmd'
 params.report_utils = 'https://raw.githubusercontent.com/nibscbioinformatics/viralevo/feature-gcp-gls/bin/loop_sample_variants.Rmd'
 params.report_snpeff = 'https://raw.githubusercontent.com/nibscbioinformatics/viralevo/feature-gcp-gls/bin/parseSnpEff.R' 
-params.report_template = 'https://raw.githubusercontent.com/nibscbioinformatics/viralevo/feature-gcp-gls/bin/nibsc_report.css'
+params.report_css = 'https://raw.githubusercontent.com/nibscbioinformatics/viralevo/feature-gcp-gls/bin/nibsc_report.css'
 
 
 def helpMessage() {
@@ -102,7 +102,7 @@ ch_adapter = params.adapter ? Channel.value(file(params.adapter)) : "null"
 ch_report = params.report_template ? Channel.value(file(params.report_template)) : "null"
 ch_report_utils = params.report_utils ? Channel.value(file(params.report_utils)) : "null"
 ch_report_snpeff = params.report_snpeff ? Channel.value(file(params.report_snpeff)) : "null"
-ch_report_template = params.report_template ? Channel.value(file(params.report_template)) : "null"
+ch_report_css = params.report_css ? Channel.value(file(params.report_css)) : "null"
 
 
 // ### TOOLS Configuration
@@ -843,10 +843,10 @@ process Reporting {
   file(report) from ch_report
   file(util_script) from ch_report_utils
   file(snpeff_script) from ch_report_snpeff
-  file(report_temp) from ch_report_template
+  file(report_temp) from ch_report_css
 
   output:
-  file("analysis_report.html")
+  file("report.html")
   file("analysis_report.RData")
 
   script:
@@ -887,7 +887,7 @@ process Reporting {
 
   Rscript -e "workdir<-getwd()    
     
-    rmarkdown::render(input ='report.Rmd',
+    rmarkdown::render(input = 'report.Rmd',
     params = list(
       vcf = \\\"$vcfFiles\\\",
       callers = \\\"$callerLabels\\\",
