@@ -779,7 +779,7 @@ process dospades {
   when: 'spades' in tools | 'all' in tools
 
   """
-  spades.py -o ${sampleprefix}_spades -1 $forwardfile -2 $reversefile -t ${task.cpus} -m 120 --isolate
+  spades.py -o ${sampleprefix}_spades -1 $forwardfile -2 $reversefile -t ${task.cpus} -m 100 --isolate
   cp ${sampleprefix}_spades/contigs.fasta ${sampleprefix}_contigs.fasta
   """
 }
